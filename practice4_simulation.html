@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Practice 4 – Poles, Zeros & System Stability</title>
+<style>
+  :root {
+    --bg:#0f1117;--card:#1a1d27;--border:#2a2d3e;
+    --blue:#4f8ef7;--orange:#f7914f;--green:#4fcc7a;
+    --purple:#b07af7;--red:#f7514f;--yellow:#f7d14f;
+    --cyan:#4fd7f7;--text:#e8eaf0;--muted:#8891a8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;min-height:100vh;}
+
+  header{background:linear-gradient(135deg,#1a1d27,#0f1117);border-bottom:1px solid var(--border);padding:22px 32px;}
+  .badge{background:var(--purple);color:#fff;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;}
+  header h1{font-size:21px;font-weight:700;margin-top:4px;}
+  header p{color:var(--muted);font-size:13px;margin-top:3px;}
+
+  .tabs{display:flex;gap:4px;padding:18px 32px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .tab{padding:9px 18px;border-radius:8px 8px 0 0;cursor:pointer;font-size:13px;font-weight:600;
+       border:1px solid transparent;border-bottom:none;transition:all .2s;color:var(--muted);}
+  .tab.active{background:var(--card);border-color:var(--border);color:var(--text);}
+  .tab:hover:not(.active){color:var(--text);}
+
+  .content{padding:26px 32px;display:none;}
+  .content.active{display:block;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;}
+  .card h3{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;display:inline-block;}
+
+  .eq-box{background:#0d1117;border:1px solid var(--border);border-radius:8px;
+          padding:13px 16px;font-family:'Courier New',monospace;font-size:12.5px;
+          color:#c9d1d9;line-height:2;margin-bottom:10px;}
+  .hl{color:var(--blue);font-weight:bold;} .hl2{color:var(--orange);font-weight:bold;}
+  .hl3{color:var(--green);font-weight:bold;} .hl4{color:var(--purple);font-weight:bold;}
+  .hlr{color:var(--red);font-weight:bold;} .cm{color:#6a737d;font-style:italic;}
+
+  label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px;margin-top:10px;}
+  input[type=range]{width:100%;accent-color:var(--blue);cursor:pointer;}
+  select{background:#1f2335;color:var(--text);border:1px solid var(--border);
+         border-radius:6px;padding:6px 10px;font-size:13px;width:100%;cursor:pointer;}
+  .vd{color:var(--blue);font-weight:700;float:right;font-size:12px;}
+
+  canvas{display:block;width:100%;border-radius:8px;background:#0d1117;border:1px solid var(--border);}
+
+  .code-block{background:#0d1117;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:10px;}
+  .ch{padding:9px 16px;background:#161b22;border-bottom:1px solid var(--border);
+      display:flex;justify-content:space-between;align-items:center;}
+  .ch span{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;}
+  .lb{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:700;}
+  .lm{background:#e44c1c22;color:#e44c1c;border:1px solid #e44c1c44;}
+  .lp{background:#3572A522;color:#4d9fdb;border:1px solid #3572A544;}
+  pre{padding:14px;font-size:11.5px;line-height:1.7;overflow-x:auto;color:#c9d1d9;white-space:pre;}
+  .kw{color:#ff7b72;} .fn{color:#d2a8ff;} .st{color:#a5d6ff;}
+  .nm{color:#f0883e;} .co{color:#6a737d;font-style:italic;} .vr{color:#ffa657;}
+
+  .stability-badge{display:inline-block;padding:6px 18px;border-radius:20px;
+                   font-size:13px;font-weight:700;margin-top:10px;}
+  .stable{background:#4fcc7a22;color:var(--green);border:1px solid var(--green);}
+  .unstable{background:#f7514f22;color:var(--red);border:1px solid var(--red);}
+  .marginal{background:#f7d14f22;color:var(--yellow);border:1px solid var(--yellow);}
+
+  .legend-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:6px;}
+  .legend-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
+  .legend-x{width:14px;height:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;}
+
+  .rule-row{background:#1f2335;border-radius:8px;padding:12px 14px;margin-bottom:8px;
+            border-left:3px solid var(--border);font-size:12.5px;line-height:1.6;}
+  .rule-row.stable-rule{border-color:var(--green);}
+  .rule-row.unstable-rule{border-color:var(--red);}
+  .rule-row.marginal-rule{border-color:var(--yellow);}
+
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .chip{background:#1f2335;border:1px solid var(--border);border-radius:20px;
+        padding:4px 12px;font-size:12px;color:var(--muted);}
+  .chip span{color:var(--text);font-weight:600;}
+
+  @media(max-width:768px){.grid2{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+    <span class="badge">PRACTICE 4</span>
+    <h1>Poles, Zeros &amp; System Stability</h1>
+  </div>
+  <p>Pole-Zero Map · Stability Analysis · Routh–Hurwitz · Interactive S-Plane Explorer</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('theory')">📚 Theory</div>
+  <div class="tab" onclick="switchTab('explorer')">🗺️ S-Plane Explorer</div>
+  <div class="tab" onclick="switchTab('routh')">📐 Routh–Hurwitz</div>
+  <div class="tab" onclick="switchTab('gain')">📈 Gain &amp; Stability</div>
+  <div class="tab" onclick="switchTab('code')">💻 MATLAB &amp; Python</div>
+</div>
+
+<!-- ============ THEORY TAB ============ -->
+<div id="tab-theory" class="content active">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--blue)"></span>Poles and Zeros — Definitions</h3>
+        <div class="eq-box">
+<span class="cm">// General Transfer Function:</span>
+         K·(s−z₁)(s−z₂)···(s−zₘ)
+H(s) = ─────────────────────────────
+         (s−p₁)(s−p₂)···(s−pₙ)
+
+<span class="cm">// ZEROS: values of s where H(s) = 0</span>
+→ Numerator roots: <span class="hl3">s = z₁, z₂, ..., zₘ</span>
+→ Plotted as ⭕ on the s-plane
+
+<span class="cm">// POLES: values of s where H(s) = ∞</span>
+→ Denominator roots: <span class="hlr">s = p₁, p₂, ..., pₙ</span>
+→ Plotted as ✕ on the s-plane
+
+<span class="cm">// ORDER: n = number of poles (degree of den)</span>
+<span class="cm">// PROPER: m ≤ n  (physical systems)</span>
+        </div>
+
+        <div class="rule-row stable-rule">
+          <strong style="color:var(--green)">✓ BIBO Stable</strong> — All poles in the <strong>Left-Half Plane (LHP)</strong>:<br>
+          Real part of every pole &lt; 0 &nbsp;→&nbsp; Re(pᵢ) &lt; 0 for all i
+        </div>
+        <div class="rule-row unstable-rule">
+          <strong style="color:var(--red)">✗ Unstable</strong> — Any pole in the <strong>Right-Half Plane (RHP)</strong>:<br>
+          Re(pᵢ) &gt; 0 for at least one pole
+        </div>
+        <div class="rule-row marginal-rule">
+          <strong style="color:var(--yellow)">~ Marginally Stable</strong> — Poles on the <strong>imaginary axis</strong>:<br>
+          Re(pᵢ) = 0 (simple poles only — no repeated j-axis poles)
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3><span class="dot" style="background:var(--orange)"></span>Pole Location → Time Response</h3>
+        <div class="eq-box">
+<span class="cm">// Real negative pole:  s = −σ</span>
+→ Decaying exponential: <span class="hl3">e^(−σt)</span>  (stable)
+
+<span class="cm">// Real positive pole:  s = +σ</span>
+→ Growing exponential: <span class="hlr">e^(+σt)</span>  (unstable!)
+
+<span class="cm">// Complex conjugate poles: s = −σ ± jωd</span>
+→ Damped oscillation: <span class="hl">e^(−σt)·cos(ωd·t)</span>
+
+<span class="cm">// Purely imaginary poles: s = ±jω</span>
+→ Sustained oscillation: <span class="hl4">cos(ω·t)</span>  (marginal)
+
+<span class="cm">// Distance from origin = ωn (natural freq)</span>
+<span class="cm">// Angle from −Re axis = cos⁻¹(ζ)</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--purple)"></span>S-Plane Stability Map</h3>
+        <canvas id="theoryCanvas" style="height:300px"></canvas>
+        <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="legend-item"><div style="width:14px;height:14px;background:#4fcc7a22;border:1px solid var(--green);border-radius:2px"></div> LHP — Stable</div>
+          <div class="legend-item"><div style="width:14px;height:14px;background:#f7514f22;border:1px solid var(--red);border-radius:2px"></div> RHP — Unstable</div>
+          <div class="legend-item"><span style="color:var(--red);font-size:16px;font-weight:700">✕</span> Poles</div>
+          <div class="legend-item"><span style="color:var(--green);font-size:14px">⭕</span> Zeros</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3><span class="dot" style="background:var(--cyan)"></span>Effect of Pole Location</h3>
+        <div style="font-size:12px;color:var(--muted);line-height:1.9">
+          <div style="margin-bottom:6px">🔵 <strong style="color:var(--text)">Further left</strong> → faster decay, faster settling</div>
+          <div style="margin-bottom:6px">🔴 <strong style="color:var(--text)">Further right</strong> → faster growth (more unstable)</div>
+          <div style="margin-bottom:6px">🟡 <strong style="color:var(--text)">Higher imaginary part</strong> → faster oscillation (high ωd)</div>
+          <div style="margin-bottom:6px">🟢 <strong style="color:var(--text)">Closer to real axis</strong> → less oscillation (high ζ)</div>
+          <div style="margin-bottom:6px">⭐ <strong style="color:var(--text)">Dominant poles</strong> → closest to jω axis, govern transient</div>
+          <div>📐 <strong style="color:var(--text)">ωn = |pole|</strong>, &nbsp; <strong style="color:var(--text)">ζ = cos(θ)</strong> where θ is angle from −σ axis</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ S-PLANE EXPLORER ============ -->
+<div id="tab-explorer" class="content">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--blue)"></span>Transfer Function Builder</h3>
+        <label>Select a preset system:</label>
+        <select id="preset-select" onchange="loadPreset()">
+          <option value="first_stable">First-order Stable: 1/(s+3)</option>
+          <option value="first_unstable">First-order Unstable: 1/(s-2)</option>
+          <option value="second_under">2nd-order Underdamped</option>
+          <option value="second_over">2nd-order Overdamped</option>
+          <option value="second_crit">2nd-order Critically Damped</option>
+          <option value="marginal">Marginally Stable (j-axis poles)</option>
+          <option value="unstable_complex">Unstable Complex Poles (RHP)</option>
+          <option value="with_zero">System with RHP Zero</option>
+          <option value="higher">3rd-order System</option>
+          <option value="custom">Custom (use sliders)</option>
+        </select>
+
+        <label>ωn (rad/s): <span class="vd" id="ex-wn-v">5</span></label>
+        <input type="range" id="ex-wn" min="1" max="20" value="5" oninput="updateExplorer()">
+        <label>ζ (damping): <span class="vd" id="ex-z-v">0.30</span></label>
+        <input type="range" id="ex-z" min="0" max="200" value="30" oninput="updateExplorer()">
+        <label>Real pole σ: <span class="vd" id="ex-s-v">-3.0</span></label>
+        <input type="range" id="ex-s" min="-100" max="50" value="-30" oninput="updateExplorer()">
+
+        <div id="ex-tf" class="eq-box" style="margin-top:14px;font-size:13px"></div>
+        <div id="ex-badge"></div>
+        <div class="chips" id="ex-chips" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--green)"></span>Pole-Zero Map</h3>
+        <canvas id="pzCanvas" style="height:280px"></canvas>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h3><span class="dot" style="background:var(--orange)"></span>Impulse / Step Response</h3>
+        <canvas id="respCanvas" style="height:180px"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ROUTH TAB ============ -->
+<div id="tab-routh" class="content">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--yellow)"></span>Routh–Hurwitz Stability Criterion</h3>
+        <div class="eq-box">
+<span class="cm">// Given characteristic polynomial:</span>
+a₀sⁿ + a₁sⁿ⁻¹ + ··· + aₙ₋₁s + aₙ = 0
+
+<span class="cm">// Necessary condition (quick check):</span>
+<span class="hl">All coefficients must be positive and present</span>
+→ If any aᵢ ≤ 0 → system is UNSTABLE
+
+<span class="cm">// Routh Array construction:</span>
+Row s^n:   a₀  a₂  a₄  a₆ ···
+Row s^n-1: a₁  a₃  a₅  a₇ ···
+Row s^n-2: b₁  b₂  b₃  ···
+Row s^n-3: c₁  c₂  c₃  ···
+   ⋮
+Row s^0:   (single element)
+
+<span class="cm">// Element formulas:</span>
+b₁ = (a₁a₂ − a₀a₃) / a₁
+b₂ = (a₁a₄ − a₀a₅) / a₁
+c₁ = (b₁a₃ − a₁b₂) / b₁
+
+<span class="cm">// Stability Rule:</span>
+<span class="hl3">Number of RHP poles = number of sign changes</span>
+<span class="hl3">in the FIRST COLUMN of the Routh array</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3><span class="dot" style="background:var(--blue)"></span>Routh Calculator</h3>
+        <label>Characteristic polynomial degree:</label>
+        <select id="routh-deg" onchange="updateRouth()">
+          <option value="2">2nd order: as² + bs + c</option>
+          <option value="3" selected>3rd order: as³ + bs² + cs + d</option>
+          <option value="4">4th order: as⁴ + bs³ + cs² + ds + e</option>
+        </select>
+
+        <div id="routh-inputs" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"></div>
+        <div id="routh-array" style="margin-top:14px"></div>
+        <div id="routh-result" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--purple)"></span>Worked Examples</h3>
+
+        <div style="font-size:13px;font-weight:600;color:var(--blue);margin-bottom:8px">Example 1: 2nd Order</div>
+        <div class="eq-box" style="font-size:12px">
+D(s) = s² + 3s + 2
+Routh Array:
+  s²: <span class="hl">1   2</span>
+  s¹: <span class="hl">3   0</span>
+  s⁰: <span class="hl">2</span>
+First column: {1, 3, 2} → <span class="hl3">No sign changes → STABLE</span>
+Poles: s = −1, −2 (verified: both in LHP)
+        </div>
+
+        <div style="font-size:13px;font-weight:600;color:var(--orange);margin-bottom:8px;margin-top:12px">Example 2: 3rd Order (Unstable)</div>
+        <div class="eq-box" style="font-size:12px">
+D(s) = s³ + 2s² − s + 2
+<span class="hlr">WARNING: coefficient −1 &lt; 0 → UNSTABLE</span>
+Routh Array:
+  s³: <span class="hlr">1   −1</span>
+  s²: <span class="hl">2    2</span>
+  s¹: b₁ = (2·(−1)−1·2)/2 = −2  <span class="hlr">(sign change!)</span>
+  s⁰: 2
+First column: {1, 2, −2, 2} → <span class="hlr">2 sign changes → 2 RHP poles</span>
+        </div>
+
+        <div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:8px;margin-top:12px">Example 3: Critical Gain</div>
+        <div class="eq-box" style="font-size:12px">
+Unity feedback, G(s) = K/(s(s+1)(s+2))
+D(s) = s³ + 3s² + 2s + K
+Routh Array:
+  s³: 1   2
+  s²: 3   K
+  s¹: (6−K)/3
+  s⁰: K
+Stability: K &gt; 0  AND  (6−K)/3 &gt; 0
+→ <span class="hl3">0 &lt; K &lt; 6  (stable range)</span>
+→ K = 6: marginally stable (j-axis poles)
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ GAIN TAB ============ -->
+<div id="tab-gain" class="content">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--blue)"></span>Effect of Gain on Stability</h3>
+        <div class="eq-box">
+<span class="cm">// Unity feedback: G(s) = K·G₀(s)</span>
+<span class="cm">// Closed-loop poles = roots of:</span>
+1 + K·G₀(s) = 0
+→ D_CL(s) = D(s) + K·N(s) = 0
+
+<span class="cm">// As K increases:</span>
+K→0:  CL poles ≈ OL poles (near G₀ poles)
+K→∞: CL poles → zeros of G₀(s)
+             (or go to ∞ along asymptotes)
+
+<span class="cm">// Root Locus traces this movement!</span>
+        </div>
+
+        <label>Plant: G₀(s) = 1/[s(s+a)(s+b)]</label>
+        <label>Pole a: <span class="vd" id="g-a-v">2</span></label>
+        <input type="range" id="g-a" min="1" max="10" value="2" oninput="updateGain()">
+        <label>Pole b: <span class="vd" id="g-b-v">4</span></label>
+        <input type="range" id="g-b" min="1" max="10" value="4" oninput="updateGain()">
+        <label>Gain K: <span class="vd" id="g-k-v">1.0</span></label>
+        <input type="range" id="g-k" min="0" max="300" value="10" oninput="updateGain()">
+
+        <div id="g-result" class="eq-box" style="margin-top:14px;font-size:12.5px"></div>
+        <div id="g-badge" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--green)"></span>Closed-Loop Pole Movement (Root Locus)</h3>
+        <canvas id="gainCanvas" style="height:300px"></canvas>
+        <div class="chips" id="gain-chips" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CODE TAB ============ -->
+<div id="tab-code" class="content">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:#e44c1c)"></span>MATLAB — Complete Script</h3>
+        <div class="code-block">
+          <div class="ch"><span>practice4_poles_zeros.m</span><span class="lb lm">MATLAB</span></div>
+<pre><span class="co">%% Practice 4 – Poles, Zeros & System Stability
+clear; clc; close all</span>
+
+<span class="co">%% ── PART A: Pole-Zero Analysis ──────────────────</span>
+s = <span class="fn">tf</span>(<span class="st">'s'</span>);
+
+<span class="co">% Define systems</span>
+<span class="vr">G1</span> = (<span class="nm">10</span>*(s+<span class="nm">2</span>)) / (s^<span class="nm">2</span> + <span class="nm">3</span>*s + <span class="nm">10</span>);   <span class="co">% Stable</span>
+<span class="vr">G2</span> = <span class="nm">1</span> / (s^<span class="nm">2</span> - <span class="nm">2</span>*s + <span class="nm">5</span>);          <span class="co">% Unstable (RHP poles)</span>
+<span class="vr">G3</span> = <span class="nm">1</span> / (s^<span class="nm">2</span> + <span class="nm">4</span>);               <span class="co">% Marginal (j-axis)</span>
+<span class="vr">G4</span> = (<span class="nm">5</span>*(s-<span class="nm">1</span>)) / ((s+<span class="nm">2</span>)*(s+<span class="nm">3</span>));   <span class="co">% Non-minimum phase (RHP zero)</span>
+
+<span class="fn">fprintf</span>(<span class="st">'=== Poles & Zeros ===\n'</span>)
+<span class="kw">for</span> <span class="vr">G</span> = {<span class="vr">G1</span>,<span class="vr">G2</span>,<span class="vr">G3</span>,<span class="vr">G4</span>}
+    <span class="fn">fprintf</span>(<span class="st">'Poles: '</span>); <span class="fn">disp</span>(<span class="fn">pole</span>(<span class="vr">G</span>{<span class="nm">1</span>})')
+    <span class="fn">fprintf</span>(<span class="st">'Zeros: '</span>); <span class="fn">disp</span>(<span class="fn">zero</span>(<span class="vr">G</span>{<span class="nm">1</span>})')
+<span class="kw">end</span>
+
+<span class="co">%% ── PART B: Pole-Zero Maps ───────────────────────</span>
+<span class="fn">figure</span>(<span class="st">'Name'</span>,<span class="st">'Pole-Zero Maps'</span>,<span class="st">'Position'</span>,[<span class="nm">50 50 900 700</span>])
+
+<span class="kw">for</span> <span class="vr">i</span> = <span class="nm">1</span>:<span class="nm">4</span>
+    <span class="fn">subplot</span>(<span class="nm">2</span>,<span class="nm">2</span>,<span class="vr">i</span>)
+    <span class="fn">pzmap</span>({<span class="vr">G1</span>,<span class="vr">G2</span>,<span class="vr">G3</span>,<span class="vr">G4</span>}{<span class="vr">i</span>}); <span class="fn">grid</span> on
+end
+<span class="fn">sgtitle</span>(<span class="st">'Pole-Zero Maps: Stable / Unstable / Marginal / NMP'</span>)
+
+<span class="co">%% ── PART C: Routh-Hurwitz ────────────────────────</span>
+<span class="fn">fprintf</span>(<span class="st">'\n=== Routh-Hurwitz Analysis ===\n'</span>)
+
+<span class="co">% Characteristic polynomial: s^3 + 6s^2 + 11s + 6</span>
+<span class="vr">coeffs</span> = [<span class="nm">1</span>, <span class="nm">6</span>, <span class="nm">11</span>, <span class="nm">6</span>];
+<span class="vr">p</span> = <span class="fn">roots</span>(<span class="vr">coeffs</span>);
+<span class="fn">fprintf</span>(<span class="st">'Polynomial: s^3+6s^2+11s+6\n'</span>)
+<span class="fn">fprintf</span>(<span class="st">'Roots: '</span>); <span class="fn">disp</span>(<span class="vr">p</span>')
+<span class="fn">fprintf</span>(<span class="st">'All real parts negative: %d\n'</span>, all(<span class="fn">real</span>(<span class="vr">p</span>)<<span class="nm">0</span>))
+
+<span class="co">% Unity feedback stability — find critical K</span>
+<span class="co">% G(s) = K/(s(s+1)(s+2)), CL denom = s^3+3s^2+2s+K</span>
+<span class="co">% Routh: stable iff 0 < K < 6</span>
+<span class="fn">fprintf</span>(<span class="st">'\nCritical K for G=K/(s(s+1)(s+2)): K_crit=6\n'</span>)
+
+<span class="kw">for</span> <span class="vr">K</span> = [<span class="nm">1</span>, <span class="nm">3</span>, <span class="nm">6</span>, <span class="nm">10</span>]
+    <span class="vr">T</span> = <span class="fn">feedback</span>(<span class="vr">K</span>/(<span class="vr">s</span>*(<span class="vr">s</span>+<span class="nm">1</span>)*(<span class="vr">s</span>+<span class="nm">2</span>)), <span class="nm">1</span>);
+    <span class="vr">p</span> = <span class="fn">pole</span>(<span class="vr">T</span>);
+    <span class="vr">stable</span> = all(<span class="fn">real</span>(<span class="vr">p</span>)<<span class="nm">0</span>);
+    <span class="fn">fprintf</span>(<span class="st">'K=%2d: %s\n'</span>,<span class="vr">K</span>,<span class="fn">ternary</span>(<span class="vr">stable</span>,<span class="st">'STABLE'</span>,<span class="st">'UNSTABLE'</span>))
+<span class="kw">end</span>
+
+<span class="co">%% ── PART D: Root Locus ───────────────────────────</span>
+<span class="vr">G_rl</span> = <span class="nm">1</span> / (<span class="vr">s</span>*(<span class="vr">s</span>+<span class="nm">1</span>)*(<span class="vr">s</span>+<span class="nm">2</span>));
+
+<span class="fn">figure</span>(<span class="st">'Name'</span>,<span class="st">'Root Locus'</span>,<span class="st">'Position'</span>,[<span class="nm">980 50 600 500</span>])
+<span class="fn">rlocus</span>(<span class="vr">G_rl</span>); <span class="fn">grid</span> on; <span class="fn">hold</span> on
+<span class="fn">xline</span>(<span class="nm">0</span>, <span class="st">'r--'</span>, <span class="st">'Stability boundary'</span>)
+<span class="fn">title</span>(<span class="st">'Root Locus: G(s) = K/[s(s+1)(s+2)]'</span>)
+
+<span class="co">%% ── PART E: Step Responses ───────────────────────</span>
+<span class="fn">figure</span>(<span class="st">'Name'</span>,<span class="st">'Step Responses'</span>,<span class="st">'Position'</span>,[<span class="nm">50 600 900 400</span>])
+<span class="kw">for</span> <span class="vr">K</span> = [<span class="nm">1</span>, <span class="nm">3</span>, <span class="nm">5</span>]
+    <span class="vr">T</span> = <span class="fn">feedback</span>(<span class="vr">K</span>/(<span class="vr">s</span>*(<span class="vr">s</span>+<span class="nm">1</span>)*(<span class="vr">s</span>+<span class="nm">2</span>)), <span class="nm">1</span>);
+    <span class="fn">step</span>(<span class="vr">T</span>, <span class="nm">10</span>); <span class="fn">hold</span> on
+<span class="kw">end</span>
+<span class="fn">legend</span>(<span class="st">'K=1'</span>,<span class="st">'K=3'</span>,<span class="st">'K=5'</span>); <span class="fn">grid</span> on
+<span class="fn">title</span>(<span class="st">'CL Step Response for Different Gains'</span>)
+
+<span class="co">% Helper function</span>
+<span class="kw">function</span> <span class="vr">r</span> = <span class="fn">ternary</span>(<span class="vr">c</span>,<span class="vr">a</span>,<span class="vr">b</span>); <span class="kw">if</span> <span class="vr">c</span>; <span class="vr">r</span>=<span class="vr">a</span>; <span class="kw">else</span>; <span class="vr">r</span>=<span class="vr">b</span>; <span class="kw">end</span>; <span class="kw">end</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:#4d9fdb"></span>Python — Complete Script</h3>
+        <div class="code-block">
+          <div class="ch"><span>practice4_poles_zeros.py</span><span class="lb lp">Python</span></div>
+<pre><span class="co">"""Practice 4 – Poles, Zeros & System Stability"""</span>
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> matplotlib.patches <span class="kw">as</span> mpatches
+<span class="kw">from</span> scipy <span class="kw">import</span> signal
+<span class="kw">import</span> control
+
+<span class="co"># ── PART A: Define Systems ───────────────────────</span>
+<span class="vr">G1</span> = control.<span class="fn">tf</span>([<span class="nm">10</span>,<span class="nm">20</span>],      [<span class="nm">1</span>,<span class="nm">3</span>,<span class="nm">10</span>])  <span class="co"># Stable</span>
+<span class="vr">G2</span> = control.<span class="fn">tf</span>([<span class="nm">1</span>],          [<span class="nm">1</span>,<span class="nm">-2</span>,<span class="nm">5</span>])  <span class="co"># Unstable</span>
+<span class="vr">G3</span> = control.<span class="fn">tf</span>([<span class="nm">1</span>],          [<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">4</span>])   <span class="co"># Marginal</span>
+<span class="vr">G4</span> = control.<span class="fn">tf</span>([<span class="nm">5</span>,<span class="nm">-5</span>],       [<span class="nm">1</span>,<span class="nm">5</span>,<span class="nm">6</span>])   <span class="co"># NMP zero</span>
+
+<span class="vr">systems</span> = [(<span class="vr">G1</span>,<span class="st">'Stable'</span>),(<span class="vr">G2</span>,<span class="st">'Unstable'</span>),
+            (<span class="vr">G3</span>,<span class="st">'Marginal'</span>),(<span class="vr">G4</span>,<span class="st">'NMP Zero'</span>)]
+
+<span class="co"># ── PART B: Pole-Zero Maps ───────────────────────</span>
+<span class="vr">fig</span>, <span class="vr">axes</span> = plt.<span class="fn">subplots</span>(<span class="nm">2</span>,<span class="nm">2</span>,figsize=(<span class="nm">12</span>,<span class="nm">9</span>))
+<span class="vr">fig</span>.suptitle(<span class="st">'Practice 4 – Pole-Zero Maps'</span>,
+             fontsize=<span class="nm">14</span>,fontweight=<span class="st">'bold'</span>)
+
+<span class="kw">for</span> <span class="vr">ax</span>,(<span class="vr">G</span>,<span class="vr">title</span>) <span class="kw">in</span> <span class="fn">zip</span>(<span class="vr">axes</span>.flat,<span class="vr">systems</span>):
+    <span class="vr">poles</span> = control.<span class="fn">poles</span>(<span class="vr">G</span>)
+    <span class="vr">zeros</span> = control.<span class="fn">zeros</span>(<span class="vr">G</span>)
+    <span class="fn">print</span>(<span class="fn">f</span><span class="st">"\n{title}: poles={poles}"</span>)
+    <span class="co"># Shade LHP/RHP</span>
+    <span class="vr">xlim</span> = <span class="nm">5</span>
+    <span class="vr">ax</span>.<span class="fn">axhspan</span>(-<span class="nm">10</span>,<span class="nm">10</span>,xmin=<span class="nm">0</span>,xmax=<span class="nm">0.5</span>,
+                alpha=<span class="nm">0.08</span>,color=<span class="st">'green'</span>)
+    <span class="vr">ax</span>.<span class="fn">axhspan</span>(-<span class="nm">10</span>,<span class="nm">10</span>,xmin=<span class="nm">0.5</span>,xmax=<span class="nm">1</span>,
+                alpha=<span class="nm">0.08</span>,color=<span class="st">'red'</span>)
+    <span class="co"># Plot poles and zeros</span>
+    <span class="vr">ax</span>.<span class="fn">scatter</span>(<span class="vr">poles</span>.real,<span class="vr">poles</span>.imag,
+                marker=<span class="st">'x'</span>,s=<span class="nm">150</span>,c=<span class="st">'red'</span>,
+                lw=<span class="nm">2.5</span>,label=<span class="st">'Poles'</span>,zorder=<span class="nm">5</span>)
+    <span class="kw">if</span> <span class="fn">len</span>(<span class="vr">zeros</span>)><span class="nm">0</span>:
+        <span class="vr">ax</span>.<span class="fn">scatter</span>(<span class="vr">zeros</span>.real,<span class="vr">zeros</span>.imag,
+                    marker=<span class="st">'o'</span>,s=<span class="nm">120</span>,
+                    facecolors=<span class="st">'none'</span>,
+                    edgecolors=<span class="st">'blue'</span>,
+                    lw=<span class="nm">2</span>,label=<span class="st">'Zeros'</span>,zorder=<span class="nm">5</span>)
+    <span class="vr">ax</span>.<span class="fn">axhline</span>(<span class="nm">0</span>,color=<span class="st">'k'</span>,lw=<span class="nm">0.8</span>)
+    <span class="vr">ax</span>.<span class="fn">axvline</span>(<span class="nm">0</span>,color=<span class="st">'k'</span>,lw=<span class="nm">0.8</span>)
+    <span class="vr">ax</span>.<span class="fn">set_title</span>(<span class="vr">title</span>,fontweight=<span class="st">'bold'</span>)
+    <span class="vr">ax</span>.<span class="fn">legend</span>(fontsize=<span class="nm">9</span>); <span class="vr">ax</span>.<span class="fn">grid</span>(<span class="kw">True</span>,alpha=<span class="nm">0.3</span>)
+    <span class="vr">ax</span>.<span class="fn">set_xlabel</span>(<span class="st">'Real Axis σ'</span>)
+    <span class="vr">ax</span>.<span class="fn">set_ylabel</span>(<span class="st">'Imaginary Axis jω'</span>)
+
+plt.<span class="fn">tight_layout</span>(); plt.<span class="fn">show</span>()
+
+<span class="co"># ── PART C: Routh-Hurwitz ─────────────────────────</span>
+<span class="kw">def</span> <span class="fn">routh_array</span>(<span class="vr">coeffs</span>):
+    <span class="st">"""Build Routh array and count RHP poles."""</span>
+    <span class="vr">n</span> = <span class="fn">len</span>(<span class="vr">coeffs</span>)
+    <span class="vr">arr</span> = np.<span class="fn">zeros</span>((<span class="vr">n</span>, (<span class="vr">n</span>+<span class="nm">1</span>)//<span class="nm">2</span>))
+    <span class="vr">arr</span>[<span class="nm">0</span>,:<span class="fn">len</span>(<span class="vr">coeffs</span>[<span class="nm">0</span>::<span class="nm">2</span>])] = <span class="vr">coeffs</span>[<span class="nm">0</span>::<span class="nm">2</span>]
+    <span class="vr">arr</span>[<span class="nm">1</span>,:<span class="fn">len</span>(<span class="vr">coeffs</span>[<span class="nm">1</span>::<span class="nm">2</span>])] = <span class="vr">coeffs</span>[<span class="nm">1</span>::<span class="nm">2</span>]
+    <span class="kw">for</span> <span class="vr">i</span> <span class="kw">in</span> <span class="fn">range</span>(<span class="nm">2</span>,<span class="vr">n</span>):
+        <span class="kw">for</span> <span class="vr">j</span> <span class="kw">in</span> <span class="fn">range</span>(<span class="vr">arr</span>.shape[<span class="nm">1</span>]-<span class="nm">1</span>):
+            <span class="kw">if</span> <span class="vr">arr</span>[<span class="vr">i</span>-<span class="nm">1</span>,<span class="nm">0</span>]==<span class="nm">0</span>: <span class="kw">break</span>
+            <span class="vr">arr</span>[<span class="vr">i</span>,<span class="vr">j</span>]=(
+                <span class="vr">arr</span>[<span class="vr">i</span>-<span class="nm">1</span>,<span class="nm">0</span>]*<span class="vr">arr</span>[<span class="vr">i</span>-<span class="nm">2</span>,<span class="vr">j</span>+<span class="nm">1</span>]-
+                <span class="vr">arr</span>[<span class="vr">i</span>-<span class="nm">2</span>,<span class="nm">0</span>]*<span class="vr">arr</span>[<span class="vr">i</span>-<span class="nm">1</span>,<span class="vr">j</span>+<span class="nm">1</span>]
+            )/<span class="vr">arr</span>[<span class="vr">i</span>-<span class="nm">1</span>,<span class="nm">0</span>]
+    <span class="vr">col1</span> = <span class="vr">arr</span>[:,<span class="nm">0</span>]
+    <span class="vr">signs</span> = <span class="fn">sum</span>(<span class="nm">1</span> <span class="kw">for</span> <span class="vr">i</span> <span class="kw">in</span>
+                  <span class="fn">range</span>(<span class="vr">n</span>-<span class="nm">1</span>)
+                  <span class="kw">if</span> <span class="vr">col1</span>[<span class="vr">i</span>]*<span class="vr">col1</span>[<span class="vr">i</span>+<span class="nm">1</span>]<<span class="nm">0</span>)
+    <span class="kw">return</span> <span class="vr">arr</span>, <span class="vr">signs</span>
+
+<span class="vr">coeffs</span> = [<span class="nm">1</span>, <span class="nm">6</span>, <span class="nm">11</span>, <span class="nm">6</span>]   <span class="co"># s³+6s²+11s+6</span>
+<span class="vr">arr</span>,<span class="vr">rhp</span> = <span class="fn">routh_array</span>(<span class="vr">coeffs</span>)
+<span class="fn">print</span>(<span class="fn">f</span><span class="st">"\nRouth array:\n{arr}"</span>)
+<span class="fn">print</span>(<span class="fn">f</span><span class="st">"RHP poles: {rhp} → {'STABLE' if rhp==0 else 'UNSTABLE'}"</span>)
+
+<span class="co"># ── PART D: Root Locus ────────────────────────────</span>
+<span class="vr">G_rl</span> = control.<span class="fn">tf</span>([<span class="nm">1</span>],[<span class="nm">1</span>,<span class="nm">3</span>,<span class="nm">2</span>,<span class="nm">0</span>])  <span class="co"># 1/[s(s+1)(s+2)]</span>
+<span class="vr">fig3</span>, <span class="vr">ax3</span> = plt.<span class="fn">subplots</span>(figsize=(<span class="nm">8</span>,<span class="nm">6</span>))
+control.<span class="fn">root_locus</span>(<span class="vr">G_rl</span>, ax=<span class="vr">ax3</span>)
+<span class="vr">ax3</span>.<span class="fn">axvline</span>(<span class="nm">0</span>,color=<span class="st">'r'</span>,ls=<span class="st">'--'</span>,label=<span class="st">'Stability bound'</span>)
+<span class="vr">ax3</span>.<span class="fn">set_title</span>(<span class="st">'Root Locus: 1/[s(s+1)(s+2)]'</span>)
+<span class="vr">ax3</span>.<span class="fn">legend</span>(); plt.<span class="fn">show</span>()</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Tab Switching ──────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.content').forEach(c=>c.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  setTimeout(()=>{
+    if(name==='theory')   drawTheoryPlane();
+    if(name==='explorer') { loadPreset(); }
+    if(name==='routh')    updateRouth();
+    if(name==='gain')     updateGain();
+  },60);
+}
+
+// ── Canvas helpers ─────────────────────────────────────
+function setupCanvas(id) {
+  const c=document.getElementById(id); if(!c) return null;
+  const W=c.offsetWidth, H=c.offsetHeight;
+  c.width=W*devicePixelRatio; c.height=H*devicePixelRatio;
+  const ctx=c.getContext('2d');
+  ctx.scale(devicePixelRatio,devicePixelRatio);
+  ctx.fillStyle='#0d1117'; ctx.fillRect(0,0,W,H);
+  return {ctx,W,H};
+}
+
+// ── Draw S-plane with LHP/RHP shading ─────────────────
+function drawSplane(ctx, W, H, cx, cy, scale, poles, zeros) {
+  // LHP shading
+  ctx.fillStyle='#4fcc7a0a';
+  ctx.fillRect(0,0,cx,H);
+  // RHP shading
+  ctx.fillStyle='#f7514f0a';
+  ctx.fillRect(cx,0,W-cx,H);
+
+  // Grid lines
+  ctx.strokeStyle='#1f2335'; ctx.lineWidth=0.7;
+  for(let x=-10;x<=10;x++) {
+    const px=cx+x*scale;
+    if(px<0||px>W) continue;
+    ctx.beginPath(); ctx.moveTo(px,0); ctx.lineTo(px,H); ctx.stroke();
+  }
+  for(let y=-10;y<=10;y++) {
+    const py=cy+y*scale;
+    if(py<0||py>H) continue;
+    ctx.beginPath(); ctx.moveTo(0,py); ctx.lineTo(W,py); ctx.stroke();
+  }
+
+  // Axes
+  ctx.strokeStyle='#8891a8'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(cx,0); ctx.lineTo(cx,H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,cy); ctx.lineTo(W,cy); ctx.stroke();
+
+  // Axis labels
+  ctx.fillStyle='#8891a8'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('jω',cx+8,14);
+  ctx.textAlign='right'; ctx.fillText('σ',W-5,cy-5);
+  ctx.fillStyle='#4fcc7a55'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('LHP',cx/2,20);
+  ctx.fillStyle='#f7514f55';
+  ctx.fillText('RHP',(cx+W)/2,20);
+
+  // Zeros (circles)
+  if(zeros) zeros.forEach(z=>{
+    const px=cx+z.r*scale, py=cy-z.i*scale;
+    ctx.strokeStyle='#4f8ef7'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(px,py,8,0,Math.PI*2); ctx.stroke();
+    ctx.fillStyle='#4f8ef722'; ctx.fill();
+  });
+
+  // Poles (crosses)
+  if(poles) poles.forEach(p=>{
+    const px=cx+p.r*scale, py=cy-p.i*scale;
+    const isStable=p.r<0, isMargin=Math.abs(p.r)<0.05;
+    const clr=isMargin?'#f7d14f':isStable?'#4fcc7a':'#f7514f';
+    ctx.strokeStyle=clr; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.moveTo(px-8,py-8); ctx.lineTo(px+8,py+8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px+8,py-8); ctx.lineTo(px-8,py+8); ctx.stroke();
+  });
+}
+
+// ── Theory Tab ─────────────────────────────────────────
+function drawTheoryPlane() {
+  const r=setupCanvas('theoryCanvas'); if(!r) return;
+  const {ctx,W,H}=r;
+  const cx=W/2, cy=H/2, scale=H/10;
+
+  drawSplane(ctx,W,H,cx,cy,scale,
+    [{r:-3,i:0},{r:-2,i:3},{r:-2,i:-3},{r:1,i:2},{r:0,i:4}],
+    [{r:-1,i:0},{r:-2,i:1},{r:-2,i:-1}]
+  );
+
+  // Annotations
+  ctx.fillStyle='#4fcc7a'; ctx.font='10px sans-serif'; ctx.textAlign='left';
+  ctx.fillText('Real: e^(−σt)',cx+5,cy-4*scale+4);
+  ctx.fillText('decays',cx+5,cy-4*scale+16);
+  ctx.fillStyle='#f7514f';
+  ctx.fillText('Real: e^(+σt)',cx+10,cy+2*scale-8);
+  ctx.fillText('grows!',cx+10,cy+2*scale+4);
+  ctx.fillStyle='#4f8ef7';
+  ctx.fillText('Complex: oscillates',cx-W/2+10,cy-3*scale+4);
+}
+
+// ── S-Plane Explorer ───────────────────────────────────
+const presets = {
+  first_stable:     {wn:3,  z:1,   s:-3},
+  first_unstable:   {wn:2,  z:2,   s:20},
+  second_under:     {wn:5,  z:30,  s:-5},
+  second_over:      {wn:4,  z:150, s:-4},
+  second_crit:      {wn:5,  z:100, s:-5},
+  marginal:         {wn:4,  z:0,   s:-4},
+  unstable_complex: {wn:5,  z:-20, s:-5},
+  with_zero:        {wn:4,  z:40,  s:-4},
+  higher:           {wn:5,  z:30,  s:-2},
+  custom:           {wn:5,  z:30,  s:-30}
+};
+
+function loadPreset() {
+  const key=document.getElementById('preset-select').value;
+  const p=presets[key];
+  document.getElementById('ex-wn').value=p.wn;
+  document.getElementById('ex-z').value=p.z;
+  document.getElementById('ex-s').value=p.s;
+  updateExplorer();
+}
+
+function updateExplorer() {
+  const wn=+document.getElementById('ex-wn').value;
+  const zRaw=+document.getElementById('ex-z').value;
+  const sRaw=+document.getElementById('ex-s').value;
+  const zeta=zRaw/100;
+  const sigma=sRaw/10;
+
+  document.getElementById('ex-wn-v').textContent=wn;
+  document.getElementById('ex-z-v').textContent=zeta.toFixed(2);
+  document.getElementById('ex-s-v').textContent=sigma.toFixed(1);
+
+  // Determine poles based on zeta
+  let poles=[], zeros=[], tfStr='', stable=true, marginal=false;
+
+  if(Math.abs(zeta)<0.01) {
+    // Purely imaginary poles
+    poles=[{r:0,i:wn},{r:0,i:-wn}];
+    marginal=true; stable=false;
+    tfStr=`H(s) = ωₙ² / (s² + ωₙ²) = ${wn*wn} / (s² + ${wn*wn})`;
+  } else if(zeta>0 && zeta<1) {
+    const wd=wn*Math.sqrt(1-zeta*zeta);
+    const sig=-zeta*wn;
+    poles=[{r:sig,i:wd},{r:sig,i:-wd}];
+    stable=sig<0;
+    tfStr=`H(s) = ${wn*wn} / (s² + ${(2*zeta*wn).toFixed(2)}s + ${wn*wn})`;
+  } else if(zeta>=1) {
+    const r1=-wn*(zeta-Math.sqrt(zeta*zeta-1));
+    const r2=-wn*(zeta+Math.sqrt(zeta*zeta-1));
+    poles=[{r:r1,i:0},{r:r2,i:0}];
+    stable=r1<0&&r2<0;
+    tfStr=`H(s) = ${wn*wn} / [(s${r1>0?'+':''} ${r1.toFixed(2)})(s${r2>0?'+':''}${r2.toFixed(2)})]`;
+  } else {
+    // negative zeta = RHP complex
+    const wd=wn*Math.sqrt(1-zeta*zeta);
+    const sig=-zeta*wn;
+    poles=[{r:sig,i:wd},{r:sig,i:-wd}];
+    stable=false;
+    tfStr=`H(s) = ωₙ² / (s² + 2ζωₙs + ωₙ²) [RHP poles!]`;
+  }
+
+  // Add a real pole at sigma
+  if(sigma!==0) poles.push({r:sigma,i:0});
+  stable=poles.every(p=>p.r<0);
+  marginal=!stable&&poles.every(p=>p.r<=0.01);
+
+  document.getElementById('ex-tf').innerHTML=tfStr;
+  const badge=document.getElementById('ex-badge');
+  if(stable) badge.innerHTML='<span class="stability-badge stable">✓ STABLE — All poles in LHP</span>';
+  else if(marginal) badge.innerHTML='<span class="stability-badge marginal">~ MARGINALLY STABLE — Poles on jω-axis</span>';
+  else badge.innerHTML='<span class="stability-badge unstable">✗ UNSTABLE — RHP poles detected</span>';
+
+  const chips=poles.map(p=>`<div class="chip">p=<span>${p.r.toFixed(2)}${p.i>=0?'+':''}${p.i.toFixed(2)}j</span></div>`).join('');
+  document.getElementById('ex-chips').innerHTML=chips;
+
+  drawPZMap(poles, zeros);
+  drawResponse(poles, stable, marginal);
+}
+
+function drawPZMap(poles, zeros) {
+  const r=setupCanvas('pzCanvas'); if(!r) return;
+  const {ctx,W,H}=r;
+  const cx=W/2, cy=H/2;
+  const maxVal=Math.max(6,...poles.map(p=>Math.max(Math.abs(p.r),Math.abs(p.i))+1));
+  const scale=Math.min(W,H)/2/maxVal;
+  drawSplane(ctx,W,H,cx,cy,scale,poles,zeros);
+  // Axis tick labels
+  ctx.fillStyle='#8891a8'; ctx.font='9px sans-serif'; ctx.textAlign='center';
+  for(let v=-Math.floor(maxVal);v<=Math.floor(maxVal);v+=Math.max(1,Math.floor(maxVal/3))) {
+    if(v===0) continue;
+    ctx.fillText(v, cx+v*scale, cy+12);
+    ctx.fillText(v, cx-18, cy-v*scale+4);
+  }
+}
+
+function drawResponse(poles, stable, marginal) {
+  const r=setupCanvas('respCanvas'); if(!r) return;
+  const {ctx,W,H}=r;
+  const pad={l:35,r:15,t:15,b:25};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+
+  const N=400, dt=0.02, tMax=N*dt;
+  const y=[];
+
+  // Simple superposition of pole contributions
+  for(let i=0;i<N;i++){
+    const t=i*dt;
+    let val=0;
+    poles.forEach(p=>{
+      if(Math.abs(p.i)<0.01) {
+        val+=Math.exp(p.r*t)*0.3/poles.length;
+      } else {
+        // Only add once for conjugate pairs
+        if(p.i>0) val+=Math.exp(p.r*t)*Math.cos(p.i*t)*0.6/poles.length;
+      }
+    });
+    y.push(Math.max(-3,Math.min(3,val)));
+  }
+
+  const yMax=Math.max(1.5,...y.map(Math.abs))*1.1;
+  const yMin=-yMax;
+
+  // Grid
+  ctx.strokeStyle='#1f2335'; ctx.lineWidth=0.7;
+  for(let i=0;i<=5;i++){
+    const x=pad.l+(i/5)*pw; ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,pad.t+ph); ctx.stroke();
+  }
+
+  // Zero line
+  const zy=pad.t+ph*(1-(0-yMin)/(yMax-yMin));
+  ctx.strokeStyle='#8891a888'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pad.l,zy); ctx.lineTo(pad.l+pw,zy); ctx.stroke();
+
+  // Response curve
+  const clr=stable?'#4fcc7a':marginal?'#f7d14f':'#f7514f';
+  ctx.strokeStyle=clr; ctx.lineWidth=2;
+  ctx.beginPath();
+  y.forEach((v,i)=>{
+    const px=pad.l+(i/(N-1))*pw;
+    const py=pad.t+ph*(1-(v-yMin)/(yMax-yMin));
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  });
+  ctx.stroke();
+
+  ctx.fillStyle=clr; ctx.font='bold 10px sans-serif'; ctx.textAlign='left';
+  ctx.fillText(stable?'Decaying (stable)':marginal?'Sustained (marginal)':'Growing (unstable!)',pad.l+5,pad.t+14);
+}
+
+// ── Routh Calculator ───────────────────────────────────
+function updateRouth() {
+  const deg=+document.getElementById('routh-deg').value;
+  const labels=['a','b','c','d','e'];
+  const defaults={2:[1,3,2],3:[1,6,11,6],4:[1,6,11,6,2]};
+  const defs=defaults[deg];
+
+  const inp=document.getElementById('routh-inputs');
+  inp.innerHTML=defs.map((v,i)=>
+    `<div style="text-align:center">
+       <div style="font-size:10px;color:var(--muted);margin-bottom:2px">${labels[i]}${i===0?'(sⁿ)':''}</div>
+       <input type="number" id="rc${i}" value="${v}"
+              style="width:55px;background:#1f2335;color:var(--text);border:1px solid var(--border);
+                     border-radius:6px;padding:5px;font-size:13px;text-align:center"
+              oninput="computeRouth()">
+     </div>`
+  ).join('');
+  computeRouth();
+}
+
+function computeRouth() {
+  const deg=+document.getElementById('routh-deg').value;
+  const n=deg+1;
+  const c=[];
+  for(let i=0;i<n;i++){
+    const el=document.getElementById('rc'+i);
+    c.push(el?+el.value:0);
+  }
+
+  // Build Routh array
+  const cols=Math.ceil(n/2);
+  const arr=Array.from({length:n},()=>new Array(cols).fill(0));
+  for(let j=0;j<cols;j++) arr[0][j]=c[j*2]||0;
+  for(let j=0;j<cols;j++) arr[1][j]=c[j*2+1]||0;
+
+  for(let i=2;i<n;i++){
+    for(let j=0;j<cols-1;j++){
+      if(Math.abs(arr[i-1][0])<1e-10){ arr[i][j]=0; continue; }
+      arr[i][j]=(arr[i-1][0]*arr[i-2][j+1]-arr[i-2][0]*arr[i-1][j+1])/arr[i-1][0];
+    }
+  }
+
+  const col1=arr.map(row=>row[0]);
+  let signChanges=0;
+  for(let i=0;i<col1.length-1;i++){
+    if(col1[i]*col1[i+1]<0) signChanges++;
+  }
+
+  // Display array
+  const sLabels=['s^n','s^(n-1)','s^(n-2)','s^(n-3)','s^(n-4)'];
+  let html=`<div style="background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:monospace;font-size:12px">
+    <div style="color:var(--muted);margin-bottom:8px;font-size:11px">ROUTH ARRAY — First column highlighted:</div>`;
+  arr.forEach((row,i)=>{
+    const rowLabel=i<n?`s<sup>${n-1-i}</sup>`:'';
+    const isChange=i>0&&col1[i]*col1[i-1]<0;
+    html+=`<div style="margin-bottom:4px;display:flex;gap:10px;align-items:center">
+      <span style="color:var(--muted);min-width:30px;font-size:11px">${rowLabel}</span>`;
+    row.forEach((v,j)=>{
+      const isFirst=j===0;
+      const clr=isFirst?(col1[i]>0?'#4fcc7a':col1[i]<0?'#f7514f':'#f7d14f'):'#c9d1d9';
+      const bg=isFirst&&isChange?'#f7514f22':'transparent';
+      html+=`<span style="color:${clr};background:${bg};padding:2px 6px;border-radius:4px;min-width:60px;text-align:right">${Math.abs(v)<1e-9?'0':v.toFixed(3)}</span>`;
+    });
+    html+=`</div>`;
+  });
+  html+=`</div>`;
+  document.getElementById('routh-array').innerHTML=html;
+
+  const result=document.getElementById('routh-result');
+  if(signChanges===0){
+    result.innerHTML=`<span class="stability-badge stable">✓ STABLE — 0 sign changes → 0 RHP poles</span>`;
+  } else {
+    result.innerHTML=`<span class="stability-badge unstable">✗ UNSTABLE — ${signChanges} sign change${signChanges>1?'s':''} → ${signChanges} RHP pole${signChanges>1?'s':''}</span>`;
+  }
+}
+
+// ── Gain & Stability ───────────────────────────────────
+function updateGain() {
+  const a=+document.getElementById('g-a').value;
+  const b_=+document.getElementById('g-b').value;
+  const K=+document.getElementById('g-k').value/10;
+  document.getElementById('g-a-v').textContent=a;
+  document.getElementById('g-b-v').textContent=b_;
+  document.getElementById('g-k-v').textContent=K.toFixed(1);
+
+  // G(s) = K/[s(s+a)(s+b)] -> CL denom = s³+(a+b)s²+ab·s+K
+  const p0=1, p1=a+b_, p2=a*b_, p3=K;
+  const K_crit=(p1*p2)/p0; // Routh: (p1*p2-p0*p3)/p1 > 0 => p3 < p1*p2
+
+  const roots=cubicRoots(p0,p1,p2,p3);
+  const stable=roots.every(r=>r.re<0);
+
+  document.getElementById('g-result').innerHTML=
+    `G(s) = <span class="hl">${K.toFixed(1)}</span> / [s(s+${a})(s+${b_})]<br>
+     CL denom: s³ + ${p1}s² + ${p2}s + ${K.toFixed(1)}<br>
+     K_critical = <span class="hl3">${K_crit.toFixed(2)}</span> &nbsp;|&nbsp; Current K = <span class="${K<K_crit?'hl3':'hlr'}">${K.toFixed(1)}</span>`;
+
+  const badge=document.getElementById('g-badge');
+  badge.innerHTML=stable?
+    `<span class="stability-badge stable">✓ STABLE (K=${K.toFixed(1)} &lt; K_crit=${K_crit.toFixed(2)})</span>`:
+    `<span class="stability-badge unstable">✗ UNSTABLE (K=${K.toFixed(1)} ≥ K_crit=${K_crit.toFixed(2)})</span>`;
+
+  drawRootLocus(a,b_,K,K_crit,roots);
+
+  const chips=roots.map(r=>`<div class="chip">p=<span>${r.re.toFixed(2)}${r.im>=0?'+':''}${r.im.toFixed(2)}j</span></div>`).join('');
+  document.getElementById('gain-chips').innerHTML=chips;
+}
+
+function cubicRoots(a,b,c,d) {
+  // Normalize
+  b/=a; c/=a; d/=a;
+  const p=(3*c-b*b)/3;
+  const q=(2*b*b*b-9*b*c+27*d)/27;
+  const disc=q*q/4+p*p*p/27;
+
+  if(disc>0) {
+    const u=Math.cbrt(-q/2+Math.sqrt(disc));
+    const v=Math.cbrt(-q/2-Math.sqrt(disc));
+    const r1=u+v-b/3;
+    const re=-(u+v)/2-b/3, im=Math.sqrt(3)*(u-v)/2;
+    return [{re:r1,im:0},{re,im},{re,im:-im}];
+  } else if(disc===0) {
+    const u=Math.cbrt(-q/2);
+    return [{re:2*u-b/3,im:0},{re:-u-b/3,im:0},{re:-u-b/3,im:0}];
+  } else {
+    const r=Math.sqrt(-p*p*p/27);
+    const theta=Math.atan2(Math.sqrt(-disc),-(q/2))/3;
+    const m=2*Math.cbrt(r);
+    return [
+      {re:m*Math.cos(theta)-b/3, im:0},
+      {re:m*Math.cos(theta+2*Math.PI/3)-b/3, im:0},
+      {re:m*Math.cos(theta+4*Math.PI/3)-b/3, im:0}
+    ];
+  }
+}
+
+function drawRootLocus(a,b_,Kcur,Kcrit,curRoots) {
+  const r=setupCanvas('gainCanvas'); if(!r) return;
+  const {ctx,W,H}=r;
+  const cx=W*0.45, cy=H/2;
+  const scale=W/14;
+
+  drawSplane(ctx,W,H,cx,cy,scale,[],[]);
+
+  // Trace root locus for K 0..2*Kcrit
+  const Kmax=Math.max(2*Kcrit,Kcur*1.5);
+  const steps=200;
+  const traces=[[],[],[]];
+
+  for(let i=0;i<=steps;i++){
+    const K=i/steps*Kmax;
+    const roots=cubicRoots(1,a+b_,a*b_,K);
+    roots.forEach((rt,idx)=>traces[idx].push({K,re:rt.re,im:rt.im}));
+  }
+
+  const traceColors=['#4f8ef7','#f7914f','#b07af7'];
+  traces.forEach((trace,idx)=>{
+    ctx.strokeStyle=traceColors[idx]+'88'; ctx.lineWidth=1.5;
+    ctx.beginPath();
+    trace.forEach(({re,im},i)=>{
+      const px=cx+re*scale, py=cy-im*scale;
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    });
+    ctx.stroke();
+  });
+
+  // Current poles
+  drawSplane(ctx,W,H,cx,cy,scale,curRoots.map(r=>({r:r.re,i:r.im})),[]);
+
+  // OL poles (stars)
+  [{r:0,i:0},{r:-a,i:0},{r:-b_,i:0}].forEach(p=>{
+    const px=cx+p.r*scale, py=cy-p.i*scale;
+    ctx.fillStyle='#f7d14f'; ctx.font='16px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('★',px,py+5);
+  });
+
+  // K_crit marker
+  const critRoots=cubicRoots(1,a+b_,a*b_,Kcrit);
+  critRoots.forEach(r=>{
+    if(Math.abs(r.re)<0.1){
+      const py=cy-r.im*scale;
+      ctx.strokeStyle='#f7d14f44'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+      ctx.beginPath(); ctx.moveTo(cx,py); ctx.lineTo(cx+30,py); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle='#f7d14f'; ctx.font='10px sans-serif'; ctx.textAlign='left';
+      ctx.fillText(`K_c=${Kcrit.toFixed(1)}`,cx+4,py-4);
+    }
+  });
+
+  // Labels
+  ctx.fillStyle='#8891a8'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('★ = OL poles',cx-60,H-10);
+  ctx.fillStyle='#4fcc7a'; ctx.fillText('✕ = CL poles (current K)',cx+40,H-10);
+}
+
+// ── Init ──────────────────────────────────────────────
+window.addEventListener('load',()=>setTimeout(()=>{
+  drawTheoryPlane();
+},100));
+window.addEventListener('resize',()=>{ drawTheoryPlane(); });
+</script>
+</body>
+</html>

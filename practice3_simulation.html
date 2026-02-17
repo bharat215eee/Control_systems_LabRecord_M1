@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Practice 3 – Step Response Analysis</title>
+<style>
+  :root {
+    --bg:#0f1117; --card:#1a1d27; --border:#2a2d3e;
+    --blue:#4f8ef7; --orange:#f7914f; --green:#4fcc7a;
+    --purple:#b07af7; --red:#f7514f; --yellow:#f7d14f;
+    --text:#e8eaf0; --muted:#8891a8; --code:#0d1117;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;min-height:100vh;}
+
+  header{background:linear-gradient(135deg,#1a1d27,#0f1117);border-bottom:1px solid var(--border);padding:22px 32px;}
+  .badge{background:var(--green);color:#fff;border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;}
+  header h1{font-size:21px;font-weight:700;margin-top:4px;}
+  header p{color:var(--muted);font-size:13px;margin-top:3px;}
+
+  .tabs{display:flex;gap:4px;padding:18px 32px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .tab{padding:9px 18px;border-radius:8px 8px 0 0;cursor:pointer;font-size:13px;font-weight:600;
+       border:1px solid transparent;border-bottom:none;transition:all .2s;color:var(--muted);}
+  .tab.active{background:var(--card);border-color:var(--border);color:var(--text);}
+  .tab:hover:not(.active){color:var(--text);}
+
+  .content{padding:26px 32px;display:none;}
+  .content.active{display:block;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;}
+  .card h3{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+  .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;display:inline-block;}
+
+  .eq-box{background:#0d1117;border:1px solid var(--border);border-radius:8px;
+          padding:13px 16px;font-family:'Courier New',monospace;font-size:12.5px;
+          color:#c9d1d9;line-height:2;margin-bottom:10px;}
+  .hl {color:var(--blue);font-weight:bold;}
+  .hl2{color:var(--orange);font-weight:bold;}
+  .hl3{color:var(--green);font-weight:bold;}
+  .hl4{color:var(--purple);font-weight:bold;}
+  .cm {color:#6a737d;font-style:italic;}
+
+  label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px;margin-top:10px;}
+  input[type=range]{width:100%;accent-color:var(--blue);cursor:pointer;}
+  select{background:#1f2335;color:var(--text);border:1px solid var(--border);
+         border-radius:6px;padding:6px 10px;font-size:13px;width:100%;cursor:pointer;}
+  .vd{color:var(--blue);font-weight:700;float:right;font-size:12px;}
+
+  canvas{display:block;width:100%;border-radius:8px;background:#0d1117;border:1px solid var(--border);}
+
+  .code-block{background:var(--code);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:10px;}
+  .ch{padding:9px 16px;background:#161b22;border-bottom:1px solid var(--border);
+      display:flex;justify-content:space-between;align-items:center;}
+  .ch span{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;}
+  .lb{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:700;}
+  .lm{background:#e44c1c22;color:#e44c1c;border:1px solid #e44c1c44;}
+  .lp{background:#3572A522;color:#4d9fdb;border:1px solid #3572A544;}
+  pre{padding:14px;font-size:11.5px;line-height:1.7;overflow-x:auto;color:#c9d1d9;white-space:pre;}
+  .kw{color:#ff7b72;} .fn{color:#d2a8ff;} .st{color:#a5d6ff;}
+  .nm{color:#f0883e;} .co{color:#6a737d;font-style:italic;} .vr{color:#ffa657;}
+
+  .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px;}
+  .metric{background:#1f2335;border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;}
+  .metric .val{font-size:18px;font-weight:700;color:var(--blue);margin-bottom:2px;}
+  .metric .lbl{font-size:11px;color:var(--muted);}
+
+  .param-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+  .param-chip{background:#1f2335;border:1px solid var(--border);border-radius:20px;
+              padding:5px 12px;font-size:12px;color:var(--muted);}
+  .param-chip span{color:var(--text);font-weight:600;}
+
+  .spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px;}
+  .spec-table th{background:#1f2335;padding:8px 12px;text-align:left;color:var(--blue);border-bottom:1px solid var(--border);}
+  .spec-table td{padding:8px 12px;border-bottom:1px solid var(--border)20;color:var(--muted);}
+  .spec-table td:last-child{color:var(--green);font-weight:600;font-family:monospace;}
+
+  @media(max-width:768px){.grid2,.grid3{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+    <span class="badge">PRACTICE 3</span>
+    <h1>Step Response Analysis</h1>
+  </div>
+  <p>First-Order (RC Circuit) &amp; Second-Order (Mass-Spring-Damper) — Time-Domain Specifications</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('first')">⚡ First-Order (RC)</div>
+  <div class="tab" onclick="switchTab('second')">⚙️ Second-Order (MSD)</div>
+  <div class="tab" onclick="switchTab('specs')">📊 Performance Specs</div>
+  <div class="tab" onclick="switchTab('compare')">🔀 Compare Responses</div>
+  <div class="tab" onclick="switchTab('code')">💻 MATLAB &amp; Python</div>
+</div>
+
+<!-- =================== FIRST ORDER =================== -->
+<div id="tab-first" class="content active">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--blue)"></span>RC Circuit — First-Order System</h3>
+        <div class="eq-box">
+<span class="cm">// KVL: Vin = VR + VC</span>
+RC·(dVc/dt) + Vc = Vin(t)
+
+<span class="cm">// Transfer Function:</span>
+H(s) = <span class="hl">1/(RCs+1)</span> = <span class="hl">1/τ / (s + 1/τ)</span>
+
+<span class="cm">// Step Response (unit step):</span>
+Vc(t) = <span class="hl">A·(1 − e^(−t/τ))</span>
+
+<span class="cm">// Time constant τ = RC</span>
+<span class="cm">// At t=τ:  Vc = 63.2% of final</span>
+<span class="cm">// At t=5τ: Vc = 99.3% (settled)</span>
+        </div>
+        <label>Resistance R (kΩ): <span class="vd" id="R1v">10</span></label>
+        <input type="range" id="R1" min="1" max="50" value="10" oninput="updateRC()">
+        <label>Capacitance C (μF): <span class="vd" id="C1v">10</span></label>
+        <input type="range" id="C1" min="1" max="100" value="10" oninput="updateRC()">
+        <div class="metric-grid" id="rc-metrics" style="margin-top:14px"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--green)"></span>Step Response — RC Circuit</h3>
+        <canvas id="rcCanvas" style="height:240px"></canvas>
+        <div class="eq-box" id="rc-eq" style="margin-top:12px;font-size:13px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== SECOND ORDER =================== -->
+<div id="tab-second" class="content">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--orange)"></span>MSD — Second-Order System</h3>
+        <div class="eq-box">
+<span class="cm">// Newton's Law:</span>
+m·x'' + b·x' + k·x = F(t)
+
+<span class="cm">// Transfer Function X(s)/F(s):</span>
+H(s) = <span class="hl2">ωn² / (s²+2ζωn·s+ωn²)</span>
+
+<span class="cm">// Key parameters:</span>
+ωn = √(k/m)   <span class="cm">// natural frequency</span>
+ζ  = b/(2√mk)  <span class="cm">// damping ratio</span>
+ωd = ωn√(1−ζ²) <span class="cm">// damped freq</span>
+
+<span class="cm">// Underdamped step response:</span>
+x(t) = <span class="hl2">1−e^(−ζωn·t)[cos(ωd·t)+
+       (ζ/√(1−ζ²))sin(ωd·t)]</span>
+        </div>
+        <label>Mass m (kg): <span class="vd" id="mv">1.0</span></label>
+        <input type="range" id="ms" min="1" max="20" value="5" oninput="updateMSD2()">
+        <label>Damping b (N·s/m): <span class="vd" id="bv">2.0</span></label>
+        <input type="range" id="bs" min="0" max="40" value="4" oninput="updateMSD2()">
+        <label>Spring k (N/m): <span class="vd" id="kv">10</span></label>
+        <input type="range" id="ks" min="1" max="50" value="10" oninput="updateMSD2()">
+        <div class="metric-grid" id="msd-metrics" style="margin-top:14px"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--green)"></span>Step Response — MSD System</h3>
+        <canvas id="msdCanvas2" style="height:240px"></canvas>
+        <div class="eq-box" id="msd-eq" style="margin-top:12px;font-size:13px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== SPECS =================== -->
+<div id="tab-specs" class="content">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--purple)"></span>Time-Domain Performance Specifications</h3>
+        <div class="eq-box">
+<span class="cm">// ── RISE TIME Tr ───────────────────────</span>
+Time to go from 10% to 90% of final value.
+Tr ≈ <span class="hl4">(1−0.4167ζ+2.917ζ²) / ωn</span>
+
+<span class="cm">// ── PEAK TIME Tp ───────────────────────</span>
+Time to reach first (maximum) peak.
+Tp = <span class="hl">π / ωd</span>  where ωd = ωn√(1−ζ²)
+
+<span class="cm">// ── PERCENT OVERSHOOT %OS ──────────────</span>
+%OS = <span class="hl2">exp(−πζ/√(1−ζ²)) × 100%</span>
+→ If %OS given: ζ = −ln(%OS/100) /
+               √(π²+ln²(%OS/100))
+
+<span class="cm">// ── SETTLING TIME Ts ───────────────────</span>
+2% criterion:  Ts ≈ <span class="hl3">4 / (ζ·ωn)</span>
+5% criterion:  Ts ≈ 3 / (ζ·ωn)
+
+<span class="cm">// ── STEADY-STATE ERROR ess ─────────────</span>
+Unity feedback step: ess = 1/(1+Kp)
+Type-0: Kp = G(0)  →  ess = 1/(1+G(0))
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3><span class="dot" style="background:var(--blue)"></span>Spec Calculator</h3>
+        <label>Natural frequency ωn (rad/s): <span class="vd" id="wn-v">5.0</span></label>
+        <input type="range" id="wn-s" min="1" max="30" value="10" oninput="updateSpecs()">
+        <label>Damping ratio ζ: <span class="vd" id="zeta-v">0.50</span></label>
+        <input type="range" id="zeta-s" min="1" max="99" value="50" oninput="updateSpecs()">
+
+        <table class="spec-table" id="spec-table" style="margin-top:14px">
+          <thead><tr><th>Specification</th><th>Formula</th><th>Value</th></tr></thead>
+          <tbody id="spec-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--green)"></span>Annotated Step Response</h3>
+        <canvas id="specsCanvas" style="height:300px"></canvas>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3><span class="dot" style="background:var(--orange)"></span>%OS vs ζ Relationship</h3>
+        <canvas id="osCanvas" style="height:180px"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== COMPARE =================== -->
+<div id="tab-compare" class="content">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--blue)"></span>Compare Multiple Damping Cases</h3>
+        <label>ωn (rad/s): <span class="vd" id="c-wn-v">5</span></label>
+        <input type="range" id="c-wn" min="1" max="20" value="5" oninput="updateCompare()">
+        <label>ζ₁: <span class="vd" id="c-z1-v">0.20</span></label>
+        <input type="range" id="c-z1" min="1" max="99" value="20" oninput="updateCompare()">
+        <label>ζ₂: <span class="vd" id="c-z2-v">0.50</span></label>
+        <input type="range" id="c-z2" min="1" max="99" value="50" oninput="updateCompare()">
+        <label>ζ₃: <span class="vd" id="c-z3-v">0.70</span></label>
+        <input type="range" id="c-z3" min="1" max="200" value="70" oninput="updateCompare()">
+        <label>ζ₄ (overdamped): <span class="vd" id="c-z4-v">2.00</span></label>
+        <input type="range" id="c-z4" min="101" max="400" value="200" oninput="updateCompare()">
+
+        <div style="margin-top:14px" id="compare-legend"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--green)"></span>Step Response Overlay</h3>
+        <canvas id="compareCanvas" style="height:320px"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== CODE =================== -->
+<div id="tab-code" class="content">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:#e44c1c)"></span>MATLAB — Complete Script</h3>
+        <div class="code-block">
+          <div class="ch"><span>practice3_step_response.m</span><span class="lb lm">MATLAB</span></div>
+<pre><span class="co">%% Practice 3 – Step Response Analysis
+% First-Order (RC) & Second-Order (MSD)</span>
+<span class="kw">clear</span>; <span class="kw">clc</span>; <span class="kw">close</span> all
+
+<span class="co">%% ── PART A: First-Order RC Circuit ──────────────</span>
+<span class="vr">R</span> = <span class="nm">10e3</span>;   <span class="co">% 10 kΩ</span>
+<span class="vr">C</span> = <span class="nm">10e-6</span>;  <span class="co">% 10 μF</span>
+<span class="vr">tau</span> = <span class="vr">R</span> * <span class="vr">C</span>;  <span class="co">% Time constant</span>
+
+<span class="vr">G_rc</span> = <span class="fn">tf</span>([<span class="nm">1</span>], [<span class="vr">tau</span>, <span class="nm">1</span>]);  <span class="co">% 1/(τs+1)</span>
+<span class="fn">fprintf</span>(<span class="st">'RC Circuit: τ = %.4f s\n'</span>, <span class="vr">tau</span>)
+<span class="fn">fprintf</span>(<span class="st">'Settling time (5τ) = %.4f s\n'</span>, <span class="nm">5</span>*<span class="vr">tau</span>)
+
+<span class="co">% Plot step response with tau markers</span>
+<span class="vr">t</span>  = <span class="nm">0</span>:<span class="vr">tau</span>/<span class="nm">100</span>:<span class="nm">6</span>*<span class="vr">tau</span>;
+<span class="vr">y</span>  = <span class="nm">1</span> - <span class="fn">exp</span>(-<span class="vr">t</span>/<span class="vr">tau</span>);
+
+<span class="fn">figure</span>(<span class="st">'Name'</span>,<span class="st">'RC Step Response'</span>,<span class="st">'Position'</span>,[<span class="nm">50 50 700 400</span>])
+<span class="fn">plot</span>(<span class="vr">t</span>, <span class="vr">y</span>, <span class="st">'b-'</span>, <span class="st">'LineWidth'</span>, <span class="nm">2</span>); <span class="fn">hold</span> on; <span class="fn">grid</span> on
+<span class="fn">yline</span>(<span class="nm">1</span>,   <span class="st">'k--'</span>, <span class="st">'LineWidth'</span>, <span class="nm">1.2</span>)
+<span class="fn">yline</span>(<span class="nm">0.632</span>, <span class="st">'r:'</span>, <span class="st">'63.2% (t=τ)'</span>, <span class="st">'LineWidth'</span>, <span class="nm">1</span>)
+<span class="fn">xline</span>(<span class="vr">tau</span>,    <span class="st">'r:'</span>, <span class="st">'τ'</span>,           <span class="st">'LineWidth'</span>, <span class="nm">1</span>)
+<span class="fn">xline</span>(<span class="nm">5</span>*<span class="vr">tau</span>,  <span class="st">'g:'</span>, <span class="st">'5τ (settled)'</span>, <span class="st">'LineWidth'</span>, <span class="nm">1</span>)
+<span class="fn">title</span>(<span class="st">'RC Circuit Step Response — V_C(t)'</span>)
+<span class="fn">xlabel</span>(<span class="st">'Time (s)'</span>); <span class="fn">ylabel</span>(<span class="st">'V_C / V_{in}'</span>)
+<span class="fn">legend</span>(<span class="st">'V_C(t)'</span>, <span class="st">'Final Value'</span>)
+
+<span class="co">%% ── PART B: Second-Order MSD ─────────────────────</span>
+<span class="vr">m</span> = <span class="nm">1</span>; <span class="vr">b</span> = <span class="nm">2</span>; <span class="vr">k</span> = <span class="nm">25</span>;
+<span class="vr">wn</span>   = <span class="fn">sqrt</span>(<span class="vr">k</span>/<span class="vr">m</span>);
+<span class="vr">zeta</span> = <span class="vr">b</span> / (<span class="nm">2</span>*<span class="fn">sqrt</span>(<span class="vr">m</span>*<span class="vr">k</span>));
+<span class="vr">wd</span>   = <span class="vr">wn</span> * <span class="fn">sqrt</span>(<span class="nm">1</span> - <span class="vr">zeta</span>^<span class="nm">2</span>);
+
+<span class="fn">fprintf</span>(<span class="st">'\nMSD: wn=%.3f | zeta=%.3f | wd=%.3f\n'</span>,<span class="vr">wn</span>,<span class="vr">zeta</span>,<span class="vr">wd</span>)
+
+<span class="co">% Performance specifications</span>
+<span class="vr">PO</span> = <span class="nm">100</span>*<span class="fn">exp</span>(-pi*<span class="vr">zeta</span>/<span class="fn">sqrt</span>(<span class="nm">1</span>-<span class="vr">zeta</span>^<span class="nm">2</span>));
+<span class="vr">Tp</span> = pi/<span class="vr">wd</span>;
+<span class="vr">Ts</span> = <span class="nm">4</span>/(<span class="vr">zeta</span>*<span class="vr">wn</span>);
+<span class="vr">Tr</span> = (<span class="nm">1</span>-<span class="nm">0.4167</span>*<span class="vr">zeta</span>+<span class="nm">2.917</span>*<span class="vr">zeta</span>^<span class="nm">2</span>)/<span class="vr">wn</span>;
+
+<span class="fn">fprintf</span>(<span class="st">'%%OS=%.2f%% | Tp=%.3fs | Ts=%.3fs | Tr=%.3fs\n'</span>,<span class="vr">PO</span>,<span class="vr">Tp</span>,<span class="vr">Ts</span>,<span class="vr">Tr</span>)
+
+<span class="vr">G_msd</span> = <span class="fn">tf</span>([<span class="vr">wn</span>^<span class="nm">2</span>], [<span class="nm">1</span>, <span class="nm">2</span>*<span class="vr">zeta</span>*<span class="vr">wn</span>, <span class="vr">wn</span>^<span class="nm">2</span>]);
+<span class="vr">info</span>  = <span class="fn">stepinfo</span>(<span class="vr">G_msd</span>);  <span class="co">% Built-in spec extractor!</span>
+<span class="fn">disp</span>(<span class="vr">info</span>)
+
+<span class="co">% Plot annotated step response</span>
+<span class="fn">figure</span>(<span class="st">'Name'</span>,<span class="st">'MSD Step Response'</span>,<span class="st">'Position'</span>,[<span class="nm">800 50 700 500</span>])
+<span class="fn">step</span>(<span class="vr">G_msd</span>); <span class="fn">grid</span> on
+<span class="fn">title</span>(<span class="st">sprintf</span>(<span class="st">'MSD Step: \\zeta=%.2f, \\omega_n=%.1f, %%OS=%.1f%%'</span>,...
+      <span class="vr">zeta</span>,<span class="vr">wn</span>,<span class="vr">PO</span>))
+
+<span class="co">%% ── PART C: Damping Comparison ───────────────────</span>
+<span class="vr">zeta_vals</span> = [<span class="nm">0.1</span>, <span class="nm">0.3</span>, <span class="nm">0.5</span>, <span class="nm">0.7</span>, <span class="nm">1.0</span>, <span class="nm">2.0</span>];
+<span class="vr">colors</span>    = {<span class="st">'b'</span>,<span class="st">'c'</span>,<span class="st">'g'</span>,<span class="st">'m'</span>,<span class="st">'r'</span>,<span class="st">'k'</span>};
+<span class="vr">wn</span> = <span class="nm">5</span>;
+
+<span class="fn">figure</span>(<span class="st">'Name'</span>,<span class="st">'Damping Comparison'</span>,<span class="st">'Position'</span>,[<span class="nm">50 550 900 400</span>])
+<span class="fn">hold</span> on; <span class="fn">grid</span> on
+
+<span class="kw">for</span> <span class="vr">i</span> = <span class="nm">1</span>:<span class="fn">length</span>(<span class="vr">zeta_vals</span>)
+  <span class="vr">z</span>  = <span class="vr">zeta_vals</span>(<span class="vr">i</span>);
+  <span class="vr">G</span>  = <span class="fn">tf</span>([<span class="vr">wn</span>^<span class="nm">2</span>],[<span class="nm">1</span>, <span class="nm">2</span>*<span class="vr">z</span>*<span class="vr">wn</span>, <span class="vr">wn</span>^<span class="nm">2</span>]);
+  <span class="fn">step</span>(<span class="vr">G</span>, <span class="vr">colors</span>{<span class="vr">i</span>}, <span class="st">'LineWidth'</span>, <span class="nm">1.8</span>)
+<span class="kw">end</span>
+
+<span class="fn">legend</span>(<span class="fn">arrayfun</span>(@(<span class="vr">z</span>) <span class="fn">sprintf</span>(<span class="st">'\\zeta=%.1f'</span>,<span class="vr">z</span>), <span class="vr">zeta_vals</span>, ...
+       <span class="st">'UniformOutput'</span>, false))
+<span class="fn">title</span>(<span class="st">'Step Responses for Different Damping Ratios'</span>)
+<span class="fn">xlabel</span>(<span class="st">'Time (s)'</span>); <span class="fn">ylabel</span>(<span class="st">'x(t) / x_{ss}'</span>)</pre>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:#4d9fdb"></span>Python — Complete Script</h3>
+        <div class="code-block">
+          <div class="ch"><span>practice3_step_response.py</span><span class="lb lp">Python</span></div>
+<pre><span class="co">"""Practice 3 – Step Response Analysis (Python)"""</span>
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">from</span> scipy <span class="kw">import</span> signal
+
+<span class="co"># ── PART A: First-Order RC Circuit ───────────────</span>
+<span class="vr">R</span>   = <span class="nm">10e3</span>   <span class="co"># 10 kΩ</span>
+<span class="vr">C</span>   = <span class="nm">10e-6</span>  <span class="co"># 10 μF</span>
+<span class="vr">tau</span> = <span class="vr">R</span> * <span class="vr">C</span>
+
+<span class="vr">sys_rc</span> = signal.<span class="fn">TransferFunction</span>([<span class="nm">1</span>],[<span class="vr">tau</span>,<span class="nm">1</span>])
+<span class="vr">t_rc</span>, <span class="vr">y_rc</span> = signal.<span class="fn">step</span>(<span class="vr">sys_rc</span>,
+               T=np.<span class="fn">linspace</span>(<span class="nm">0</span>, <span class="nm">6</span>*<span class="vr">tau</span>, <span class="nm">500</span>))
+
+<span class="fn">print</span>(<span class="fn">f</span><span class="st">"RC: τ={tau:.4f}s | 5τ={5*tau:.4f}s"</span>)
+
+<span class="vr">fig</span>, <span class="vr">axes</span> = plt.<span class="fn">subplots</span>(<span class="nm">1</span>,<span class="nm">2</span>,figsize=(<span class="nm">12</span>,<span class="nm">4</span>))
+<span class="vr">axes</span>[<span class="nm">0</span>].<span class="fn">plot</span>(<span class="vr">t_rc</span>, <span class="vr">y_rc</span>, <span class="st">'b'</span>, lw=<span class="nm">2</span>)
+<span class="vr">axes</span>[<span class="nm">0</span>].<span class="fn">axhline</span>(<span class="nm">1</span>,    <span class="st">'k--'</span>, lw=<span class="nm">1</span>)
+<span class="vr">axes</span>[<span class="nm">0</span>].<span class="fn">axhline</span>(<span class="nm">0.632</span>,color=<span class="st">'r'</span>,ls=<span class="st">':'</span>,
+                label=<span class="st">'63.2% (t=τ)'</span>)
+<span class="vr">axes</span>[<span class="nm">0</span>].<span class="fn">axvline</span>(<span class="vr">tau</span>,  color=<span class="st">'r'</span>,ls=<span class="st">':'</span>)
+<span class="vr">axes</span>[<span class="nm">0</span>].<span class="fn">axvline</span>(<span class="nm">5</span>*<span class="vr">tau</span>,color=<span class="st">'g'</span>,ls=<span class="st">':'</span>,
+                label=<span class="st">'5τ settled'</span>)
+<span class="vr">axes</span>[<span class="nm">0</span>].<span class="fn">set_title</span>(<span class="st">'RC Step Response'</span>)
+<span class="vr">axes</span>[<span class="nm">0</span>].<span class="fn">set_xlabel</span>(<span class="st">'Time (s)'</span>)
+<span class="vr">axes</span>[<span class="nm">0</span>].<span class="fn">legend</span>(); <span class="vr">axes</span>[<span class="nm">0</span>].<span class="fn">grid</span>(<span class="kw">True</span>)
+
+<span class="co"># ── PART B: Second-Order MSD ──────────────────────</span>
+<span class="vr">m</span>,<span class="vr">b</span>,<span class="vr">k</span> = <span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">25</span>
+<span class="vr">wn</span>   = np.<span class="fn">sqrt</span>(<span class="vr">k</span>/<span class="vr">m</span>)
+<span class="vr">zeta</span> = <span class="vr">b</span>/(<span class="nm">2</span>*np.<span class="fn">sqrt</span>(<span class="vr">m</span>*<span class="vr">k</span>))
+<span class="vr">wd</span>   = <span class="vr">wn</span>*np.<span class="fn">sqrt</span>(<span class="nm">1</span>-<span class="vr">zeta</span>**<span class="nm">2</span>)
+
+<span class="vr">PO</span>   = <span class="nm">100</span>*np.<span class="fn">exp</span>(-np.pi*<span class="vr">zeta</span>/np.<span class="fn">sqrt</span>(<span class="nm">1</span>-<span class="vr">zeta</span>**<span class="nm">2</span>))
+<span class="vr">Tp</span>   = np.pi/<span class="vr">wd</span>
+<span class="vr">Ts</span>   = <span class="nm">4</span>/(<span class="vr">zeta</span>*<span class="vr">wn</span>)
+
+<span class="fn">print</span>(<span class="fn">f</span><span class="st">"MSD: wn={wn:.3f} ζ={zeta:.3f}"</span>)
+<span class="fn">print</span>(<span class="fn">f</span><span class="st">"%OS={PO:.2f}% Tp={Tp:.3f}s Ts={Ts:.3f}s"</span>)
+
+<span class="vr">sys_msd</span> = signal.<span class="fn">TransferFunction</span>(
+    [<span class="vr">wn</span>**<span class="nm">2</span>], [<span class="nm">1</span>,<span class="nm">2</span>*<span class="vr">zeta</span>*<span class="vr">wn</span>,<span class="vr">wn</span>**<span class="nm">2</span>])
+<span class="vr">t2</span>,<span class="vr">y2</span> = signal.<span class="fn">step</span>(<span class="vr">sys_msd</span>)
+
+<span class="vr">axes</span>[<span class="nm">1</span>].<span class="fn">plot</span>(<span class="vr">t2</span>,<span class="vr">y2</span>,<span class="st">'orange'</span>,lw=<span class="nm">2</span>)
+<span class="vr">axes</span>[<span class="nm">1</span>].<span class="fn">axhline</span>(<span class="nm">1</span>,color=<span class="st">'k'</span>,ls=<span class="st">'--'</span>,lw=<span class="nm">1</span>)
+<span class="vr">axes</span>[<span class="nm">1</span>].<span class="fn">axhline</span>(<span class="nm">1</span>+<span class="vr">PO</span>/<span class="nm">100</span>,color=<span class="st">'r'</span>,ls=<span class="st">':'</span>,
+                label=<span class="fn">f</span><span class="st">'Peak {1+PO/100:.3f}'</span>)
+<span class="vr">axes</span>[<span class="nm">1</span>].<span class="fn">axvline</span>(<span class="vr">Tp</span>,color=<span class="st">'r'</span>,ls=<span class="st">':'</span>,
+                label=<span class="fn">f</span><span class="st">'Tp={Tp:.3f}s'</span>)
+<span class="vr">axes</span>[<span class="nm">1</span>].<span class="fn">set_title</span>(<span class="fn">f</span><span class="st">'MSD Step: ζ={zeta:.2f}, %OS={PO:.1f}%'</span>)
+<span class="vr">axes</span>[<span class="nm">1</span>].<span class="fn">legend</span>(); <span class="vr">axes</span>[<span class="nm">1</span>].<span class="fn">grid</span>(<span class="kw">True</span>)
+plt.<span class="fn">tight_layout</span>(); plt.<span class="fn">show</span>()
+
+<span class="co"># ── PART C: Damping Comparison ────────────────────</span>
+<span class="vr">fig2</span>, <span class="vr">ax</span> = plt.<span class="fn">subplots</span>(figsize=(<span class="nm">10</span>,<span class="nm">5</span>))
+<span class="vr">zeta_vals</span> = [<span class="nm">0.1</span>,<span class="nm">0.3</span>,<span class="nm">0.5</span>,<span class="nm">0.7</span>,<span class="nm">1.0</span>,<span class="nm">2.0</span>]
+<span class="vr">colors</span>    = [<span class="st">'navy'</span>,<span class="st">'royalblue'</span>,<span class="st">'green'</span>,
+              <span class="st">'purple'</span>,<span class="st">'orange'</span>,<span class="st">'red'</span>]
+<span class="vr">wn</span> = <span class="nm">5</span>
+<span class="kw">for</span> <span class="vr">z</span>,<span class="vr">c</span> <span class="kw">in</span> <span class="fn">zip</span>(<span class="vr">zeta_vals</span>,<span class="vr">colors</span>):
+  <span class="vr">sys</span>=signal.<span class="fn">TransferFunction</span>(
+        [<span class="vr">wn</span>**<span class="nm">2</span>],[<span class="nm">1</span>,<span class="nm">2</span>*<span class="vr">z</span>*<span class="vr">wn</span>,<span class="vr">wn</span>**<span class="nm">2</span>])
+  <span class="vr">t</span>,<span class="vr">y</span>=signal.<span class="fn">step</span>(<span class="vr">sys</span>)
+  <span class="vr">ax</span>.<span class="fn">plot</span>(<span class="vr">t</span>,<span class="vr">y</span>,color=<span class="vr">c</span>,lw=<span class="nm">2</span>,label=<span class="fn">f</span><span class="st">'ζ={z}'</span>)
+<span class="vr">ax</span>.<span class="fn">axhline</span>(<span class="nm">1</span>,color=<span class="st">'k'</span>,ls=<span class="st">'--'</span>)
+<span class="vr">ax</span>.<span class="fn">set_title</span>(<span class="st">'Step Responses — Damping Comparison'</span>)
+<span class="vr">ax</span>.<span class="fn">legend</span>(); <span class="vr">ax</span>.<span class="fn">grid</span>(<span class="kw">True</span>,alpha=<span class="nm">0.4</span>)
+plt.<span class="fn">show</span>()</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Tab Switching ─────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.content').forEach(c=>c.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  setTimeout(()=>{
+    if(name==='first')   updateRC();
+    if(name==='second')  updateMSD2();
+    if(name==='specs')   { updateSpecs(); drawOSCurve(); }
+    if(name==='compare') updateCompare();
+  },50);
+}
+
+// ── Canvas Setup ──────────────────────────────────
+function setupCanvas(id) {
+  const c=document.getElementById(id);
+  if(!c) return null;
+  const W=c.offsetWidth, H=c.offsetHeight;
+  c.width=W*devicePixelRatio; c.height=H*devicePixelRatio;
+  const ctx=c.getContext('2d');
+  ctx.scale(devicePixelRatio,devicePixelRatio);
+  ctx.fillStyle='#0d1117'; ctx.fillRect(0,0,W,H);
+  return {ctx,W,H};
+}
+
+function drawGrid(ctx,pad,pw,ph) {
+  ctx.strokeStyle='#1f2335'; ctx.lineWidth=0.8;
+  for(let i=0;i<=5;i++){
+    const x=pad.l+(i/5)*pw; ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,pad.t+ph); ctx.stroke();
+    const y=pad.t+(i/5)*ph; ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+pw,y); ctx.stroke();
+  }
+}
+
+function drawAxes(ctx,pad,pw,ph,W,H) {
+  ctx.strokeStyle='#8891a8'; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(pad.l,pad.t); ctx.lineTo(pad.l,pad.t+ph); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad.l,pad.t+ph); ctx.lineTo(pad.l+pw,pad.t+ph); ctx.stroke();
+}
+
+// ── RC Circuit ────────────────────────────────────
+function updateRC() {
+  const R=+document.getElementById('R1').value;
+  const C=+document.getElementById('C1').value;
+  document.getElementById('R1v').textContent=R;
+  document.getElementById('C1v').textContent=C;
+  const tau=R*C/1000; // ms scaled for display (kΩ × μF = ms)
+  const r=setupCanvas('rcCanvas');
+  if(!r) return;
+  const {ctx,W,H}=r;
+  const pad={l:45,r:15,t:20,b:35};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+
+  drawGrid(ctx,pad,pw,ph);
+
+  const N=400, tMax=6*tau;
+  const pts=Array.from({length:N},(_,i)=>{
+    const t=i/(N-1)*tMax;
+    return {t, y:1-Math.exp(-t/tau)};
+  });
+
+  // Steady state line
+  ctx.strokeStyle='#2a4080'; ctx.lineWidth=1; ctx.setLineDash([5,4]);
+  const ss_y=pad.t+4;
+  ctx.beginPath(); ctx.moveTo(pad.l,ss_y); ctx.lineTo(pad.l+pw,ss_y); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 63.2% line
+  const y63=pad.t+ph*(1-0.632);
+  ctx.strokeStyle='#f7514f44'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(pad.l,y63); ctx.lineTo(pad.l+pw,y63); ctx.stroke();
+  // tau line
+  const tx=pad.l+(tau/tMax)*pw;
+  ctx.beginPath(); ctx.moveTo(tx,pad.t); ctx.lineTo(tx,pad.t+ph); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 5tau marker
+  const t5x=pad.l+(5*tau/tMax)*pw;
+  ctx.strokeStyle='#4fcc7a44'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(t5x,pad.t); ctx.lineTo(t5x,pad.t+ph); ctx.stroke();
+  ctx.setLineDash([]);
+
+  drawAxes(ctx,pad,pw,ph,W,H);
+
+  // Curve
+  const grad=ctx.createLinearGradient(pad.l,0,pad.l+pw,0);
+  grad.addColorStop(0,'#4f8ef7'); grad.addColorStop(1,'#4fcc7a');
+  ctx.strokeStyle=grad; ctx.lineWidth=2.5;
+  ctx.beginPath();
+  pts.forEach(({t,y},i)=>{
+    const px=pad.l+(t/tMax)*pw, py=pad.t+ph*(1-y);
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  });
+  ctx.stroke();
+
+  // Labels
+  ctx.fillStyle='#8891a8'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('0',pad.l-18,pad.t+ph+5);
+  ctx.fillText('1.0',pad.l-22,pad.t+8);
+  ctx.fillText('0.63',pad.l-24,y63+4);
+  ctx.fillText('τ',tx,pad.t+ph+16);
+  ctx.fillText('5τ',t5x,pad.t+ph+16);
+  ctx.fillStyle='#4f8ef7'; ctx.font='bold 11px sans-serif'; ctx.textAlign='left';
+  ctx.fillText(`τ = ${tau.toFixed(1)} ms`,pad.l+6,pad.t+16);
+
+  document.getElementById('rc-eq').innerHTML=
+    `Vc(t) = <span class="hl">1 − e<sup>−t/${tau.toFixed(1)}</sup></span> &nbsp;|&nbsp; τ = ${tau.toFixed(1)} ms &nbsp;|&nbsp; 5τ = ${(5*tau).toFixed(1)} ms`;
+
+  document.getElementById('rc-metrics').innerHTML=`
+    <div class="metric"><div class="val">${tau.toFixed(1)}<small style="font-size:12px"> ms</small></div><div class="lbl">Time Constant τ</div></div>
+    <div class="metric"><div class="val">${(5*tau).toFixed(1)}<small style="font-size:12px"> ms</small></div><div class="lbl">Settling (5τ)</div></div>
+    <div class="metric"><div class="val">63.2<small style="font-size:12px">%</small></div><div class="lbl">Value at t=τ</div></div>`;
+}
+
+// ── MSD Step Response ────────────────────────────
+function stepResp2(wn,zeta,t){
+  if(zeta<0.999){
+    const wd=wn*Math.sqrt(1-zeta*zeta);
+    return 1-Math.exp(-zeta*wn*t)*(Math.cos(wd*t)+zeta/Math.sqrt(1-zeta*zeta)*Math.sin(wd*t));
+  } else if(zeta>1.001){
+    const r1=-wn*(zeta-Math.sqrt(zeta*zeta-1)), r2=-wn*(zeta+Math.sqrt(zeta*zeta-1));
+    return 1+(r1/(r2-r1))*Math.exp(r2*t)-(r2/(r2-r1))*Math.exp(r1*t);
+  }
+  return 1-Math.exp(-wn*t)*(1+wn*t);
+}
+
+function updateMSD2() {
+  const m=+document.getElementById('ms').value/5;
+  const b=+document.getElementById('bs').value/5;
+  const k=+document.getElementById('ks').value;
+  document.getElementById('mv').textContent=m.toFixed(1);
+  document.getElementById('bv').textContent=b.toFixed(1);
+  document.getElementById('kv').textContent=k;
+  const wn=Math.sqrt(k/m), zeta=b/(2*Math.sqrt(m*k));
+  const wd=zeta<1?wn*Math.sqrt(1-zeta*zeta):0;
+
+  const r=setupCanvas('msdCanvas2');
+  if(!r) return;
+  const {ctx,W,H}=r;
+  const pad={l:45,r:15,t:20,b:35};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+
+  const N=500, tMax=Math.max(8,10/(zeta*wn+0.1));
+  const pts=Array.from({length:N},(_,i)=>({ t:i/(N-1)*tMax, y:stepResp2(wn,zeta,i/(N-1)*tMax) }));
+  const yMax=Math.max(1.3,...pts.map(p=>p.y))*1.1;
+  const yMin=Math.min(0,...pts.map(p=>p.y))*1.05;
+
+  drawGrid(ctx,pad,pw,ph);
+
+  // SS line
+  ctx.strokeStyle='#2a4080'; ctx.lineWidth=1; ctx.setLineDash([5,4]);
+  const ss_y=pad.t+ph*(1-(1-yMin)/(yMax-yMin));
+  ctx.beginPath(); ctx.moveTo(pad.l,ss_y); ctx.lineTo(pad.l+pw,ss_y); ctx.stroke();
+
+  // Peak time line
+  if(zeta<1 && wd>0){
+    const Tp=Math.PI/wd, PO=Math.exp(-Math.PI*zeta/Math.sqrt(1-zeta*zeta))*100;
+    const tpx=pad.l+(Tp/tMax)*pw;
+    ctx.strokeStyle='#f7514f44'; ctx.beginPath(); ctx.moveTo(tpx,pad.t); ctx.lineTo(tpx,pad.t+ph); ctx.stroke();
+    ctx.fillStyle='#f7514f'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+    if(tpx<pad.l+pw-20) ctx.fillText(`Tp=${Tp.toFixed(2)}s`,tpx,pad.t+12);
+  }
+  ctx.setLineDash([]);
+  drawAxes(ctx,pad,pw,ph,W,H);
+
+  const grad=ctx.createLinearGradient(pad.l,0,pad.l+pw,0);
+  grad.addColorStop(0,'#f7914f'); grad.addColorStop(1,'#f7d14f');
+  ctx.strokeStyle=grad; ctx.lineWidth=2.5;
+  ctx.beginPath();
+  pts.forEach(({t,y},i)=>{
+    const px=pad.l+(t/tMax)*pw, py=pad.t+ph*(1-(y-yMin)/(yMax-yMin));
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  });
+  ctx.stroke();
+
+  // Labels
+  ctx.fillStyle='#8891a8'; ctx.font='10px sans-serif'; ctx.textAlign='right';
+  ctx.fillText('0',pad.l-5,pad.t+ph+4);
+  ctx.fillStyle='#f7914f'; ctx.font='bold 11px sans-serif'; ctx.textAlign='left';
+  ctx.fillText(`ωn=${wn.toFixed(2)} ζ=${zeta.toFixed(3)}`,pad.l+5,pad.t+14);
+
+  const type=zeta<0.999?'Underdamped':zeta>1.001?'Overdamped':'Critical';
+  let specs='';
+  if(zeta<1){
+    const PO=Math.exp(-Math.PI*zeta/Math.sqrt(1-zeta*zeta))*100;
+    const Tp=Math.PI/(wn*Math.sqrt(1-zeta*zeta));
+    const Ts=4/(zeta*wn);
+    specs=`%OS=<span class="hl2">${PO.toFixed(1)}%</span> &nbsp;|&nbsp; Tp=<span class="hl">${Tp.toFixed(3)}s</span> &nbsp;|&nbsp; Ts=<span class="hl3">${Ts.toFixed(3)}s</span>`;
+  }
+  document.getElementById('msd-eq').innerHTML=
+    `<span class="hl4">${type}</span> &nbsp;| ωn=<span class="hl">${wn.toFixed(3)}</span> ζ=<span class="hl2">${zeta.toFixed(3)}</span> ωd=<span class="hl3">${wd.toFixed(3)}</span><br>${specs}`;
+
+  const po=zeta<1?Math.exp(-Math.PI*zeta/Math.sqrt(1-zeta*zeta))*100:0;
+  const tp=zeta<1?Math.PI/(wn*Math.sqrt(1-zeta*zeta)):0;
+  document.getElementById('msd-metrics').innerHTML=`
+    <div class="metric"><div class="val">${wn.toFixed(2)}</div><div class="lbl">ωn (rad/s)</div></div>
+    <div class="metric"><div class="val">${zeta.toFixed(3)}</div><div class="lbl">Damping ζ</div></div>
+    <div class="metric"><div class="val">${po.toFixed(1)}%</div><div class="lbl">Overshoot</div></div>
+    <div class="metric"><div class="val">${tp.toFixed(3)}</div><div class="lbl">Peak Time Tp (s)</div></div>
+    <div class="metric"><div class="val">${(4/(zeta*wn)).toFixed(3)}</div><div class="lbl">Settling Ts (s)</div></div>
+    <div class="metric"><div class="val">${type.charAt(0)}</div><div class="lbl">${type}</div></div>`;
+}
+
+// ── Specs Tab ─────────────────────────────────────
+function updateSpecs() {
+  const wn=+document.getElementById('wn-s').value/2;
+  const zeta=+document.getElementById('zeta-s').value/100;
+  document.getElementById('wn-v').textContent=wn.toFixed(1);
+  document.getElementById('zeta-v').textContent=zeta.toFixed(2);
+
+  const wd=zeta<1?wn*Math.sqrt(1-zeta*zeta):0;
+  const PO=zeta<1?Math.exp(-Math.PI*zeta/Math.sqrt(1-zeta*zeta))*100:0;
+  const Tp=wd>0?Math.PI/wd:Infinity;
+  const Ts=4/(zeta*wn);
+  const Tr=(1-0.4167*zeta+2.917*zeta*zeta)/wn;
+
+  document.getElementById('spec-body').innerHTML=`
+    <tr><td>Natural Freq ωn</td><td>given</td><td>${wn.toFixed(2)} rad/s</td></tr>
+    <tr><td>Damped Freq ωd</td><td>ωn√(1−ζ²)</td><td>${wd.toFixed(3)} rad/s</td></tr>
+    <tr><td>% Overshoot</td><td>e<sup>−πζ/√(1−ζ²)</sup>×100</td><td>${PO.toFixed(2)}%</td></tr>
+    <tr><td>Peak Time Tp</td><td>π/ωd</td><td>${isFinite(Tp)?Tp.toFixed(3)+'s':'∞'}</td></tr>
+    <tr><td>Settling Time Ts</td><td>4/(ζωn)</td><td>${Ts.toFixed(3)} s</td></tr>
+    <tr><td>Rise Time Tr</td><td>approx formula</td><td>${Tr.toFixed(3)} s</td></tr>`;
+
+  drawAnnotatedResponse(wn,zeta);
+}
+
+function drawAnnotatedResponse(wn,zeta) {
+  const r=setupCanvas('specsCanvas');
+  if(!r) return;
+  const {ctx,W,H}=r;
+  const pad={l:50,r:20,t:25,b:35};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+  const N=500, tMax=Math.max(8,10/(zeta*wn+0.1));
+  const pts=Array.from({length:N},(_,i)=>({t:i/(N-1)*tMax,y:stepResp2(wn,zeta,i/(N-1)*tMax)}));
+  const yMax=Math.max(1.4,...pts.map(p=>p.y))*1.05;
+
+  drawGrid(ctx,pad,pw,ph);
+
+  const toX=t=>pad.l+(t/tMax)*pw;
+  const toY=y=>pad.t+ph*(1-y/yMax);
+
+  // SS line
+  ctx.strokeStyle='#2a408088'; ctx.lineWidth=1; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(pad.l,toY(1)); ctx.lineTo(pad.l+pw,toY(1)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Main curve
+  ctx.strokeStyle='#4f8ef7'; ctx.lineWidth=2.5;
+  ctx.beginPath();
+  pts.forEach(({t,y},i)=>{ i===0?ctx.moveTo(toX(t),toY(y)):ctx.lineTo(toX(t),toY(y)); });
+  ctx.stroke();
+
+  // Annotations if underdamped
+  if(zeta<1){
+    const wd=wn*Math.sqrt(1-zeta*zeta);
+    const Tp=Math.PI/wd, Ts=4/(zeta*wn);
+    const PO=Math.exp(-Math.PI*zeta/Math.sqrt(1-zeta*zeta));
+    const peakY=1+PO;
+
+    // Tp marker
+    if(toX(Tp)<pad.l+pw){
+      ctx.strokeStyle='#f7514f'; ctx.lineWidth=1.2; ctx.setLineDash([4,3]);
+      ctx.beginPath(); ctx.moveTo(toX(Tp),pad.t); ctx.lineTo(toX(Tp),toY(peakY)); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle='#f7514f'; ctx.font='bold 10px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('Tp',toX(Tp),pad.t+16);
+
+      // PO arrow
+      ctx.strokeStyle='#f7514f66'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(toX(Tp)+20,toY(1)); ctx.lineTo(toX(Tp)+20,toY(peakY)); ctx.stroke();
+      ctx.fillStyle='#f7514f'; ctx.font='10px sans-serif'; ctx.textAlign='left';
+      ctx.fillText(`%OS`,toX(Tp)+24,toY(1+(peakY-1)/2));
+    }
+
+    // Ts marker
+    if(toX(Ts)<pad.l+pw-10){
+      ctx.strokeStyle='#4fcc7a'; ctx.lineWidth=1.2; ctx.setLineDash([4,3]);
+      ctx.beginPath(); ctx.moveTo(toX(Ts),pad.t); ctx.lineTo(toX(Ts),pad.t+ph); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle='#4fcc7a'; ctx.font='bold 10px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('Ts',toX(Ts),pad.t+ph+20);
+    }
+
+    // 2% band
+    ctx.strokeStyle='#4fcc7a33'; ctx.lineWidth=0.8; ctx.setLineDash([2,3]);
+    ctx.beginPath(); ctx.moveTo(pad.l,toY(1.02)); ctx.lineTo(pad.l+pw,toY(1.02)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad.l,toY(0.98)); ctx.lineTo(pad.l+pw,toY(0.98)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Axes labels
+  ctx.fillStyle='#8891a8'; ctx.font='10px sans-serif'; ctx.textAlign='right';
+  ctx.fillText('1.0',pad.l-5,toY(1)+4);
+  ctx.fillText('0',pad.l-5,pad.t+ph+4);
+  ctx.fillStyle='#4f8ef7'; ctx.font='bold 11px sans-serif'; ctx.textAlign='left';
+  ctx.fillText(`ωn=${wn.toFixed(1)} ζ=${zeta.toFixed(2)}`,pad.l+5,pad.t+18);
+}
+
+function drawOSCurve() {
+  const r=setupCanvas('osCanvas');
+  if(!r) return;
+  const {ctx,W,H}=r;
+  const pad={l:40,r:15,t:15,b:30};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+
+  drawGrid(ctx,pad,pw,ph);
+
+  ctx.strokeStyle='#b07af7'; ctx.lineWidth=2;
+  ctx.beginPath();
+  for(let i=0;i<=200;i++){
+    const z=i/200*0.99+0.001;
+    const os=Math.exp(-Math.PI*z/Math.sqrt(1-z*z))*100;
+    const px=pad.l+(z/1)*pw, py=pad.t+ph*(1-os/100);
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+
+  ctx.fillStyle='#8891a8'; ctx.font='10px sans-serif';
+  ctx.textAlign='center'; ctx.fillText('Damping Ratio ζ →',pad.l+pw/2,pad.t+ph+22);
+  ctx.textAlign='left'; ctx.fillText('0',pad.l-10,pad.t+ph+4);
+  ctx.fillText('1',pad.l+pw,pad.t+ph+4);
+  ctx.save(); ctx.translate(12,pad.t+ph/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText('% Overshoot',0,0); ctx.restore();
+}
+
+// ── Compare Tab ───────────────────────────────────
+function updateCompare() {
+  const wn=+document.getElementById('c-wn').value;
+  const z1=+document.getElementById('c-z1').value/100;
+  const z2=+document.getElementById('c-z2').value/100;
+  const z3=+document.getElementById('c-z3').value/100;
+  const z4=+document.getElementById('c-z4').value/100;
+  document.getElementById('c-wn-v').textContent=wn;
+  document.getElementById('c-z1-v').textContent=z1.toFixed(2);
+  document.getElementById('c-z2-v').textContent=z2.toFixed(2);
+  document.getElementById('c-z3-v').textContent=z3.toFixed(2);
+  document.getElementById('c-z4-v').textContent=z4.toFixed(2);
+
+  const r=setupCanvas('compareCanvas');
+  if(!r) return;
+  const {ctx,W,H}=r;
+  const pad={l:45,r:20,t:22,b:35};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+
+  const cases=[
+    {z:z1, color:'#4f8ef7'},
+    {z:z2, color:'#4fcc7a'},
+    {z:z3, color:'#b07af7'},
+    {z:z4, color:'#f7914f'},
+  ];
+
+  const N=500;
+  const tMax=Math.max(6,...cases.map(c=>10/(c.z*wn+0.01)));
+  const allY=cases.flatMap(({z})=>Array.from({length:10},(_,i)=>stepResp2(wn,z,i/9*tMax)));
+  const yMax=Math.max(1.3,...allY)*1.08;
+  const yMin=Math.min(0,...allY)*1.05;
+
+  drawGrid(ctx,pad,pw,ph);
+
+  // SS line
+  ctx.strokeStyle='#2a408088'; ctx.lineWidth=1; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(pad.l,pad.t+ph*(1-(1-yMin)/(yMax-yMin))); ctx.lineTo(pad.l+pw,pad.t+ph*(1-(1-yMin)/(yMax-yMin))); ctx.stroke();
+  ctx.setLineDash([]);
+
+  cases.forEach(({z,color})=>{
+    const pts=Array.from({length:N},(_,i)=>({t:i/(N-1)*tMax, y:stepResp2(wn,z,i/(N-1)*tMax)}));
+    ctx.strokeStyle=color; ctx.lineWidth=2;
+    ctx.beginPath();
+    pts.forEach(({t,y},i)=>{
+      const px=pad.l+(t/tMax)*pw, py=pad.t+ph*(1-(y-yMin)/(yMax-yMin));
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    });
+    ctx.stroke();
+  });
+
+  // Axes
+  ctx.strokeStyle='#8891a8'; ctx.lineWidth=1;
+  const z0=pad.t+ph*(1-(0-yMin)/(yMax-yMin));
+  ctx.beginPath(); ctx.moveTo(pad.l,z0); ctx.lineTo(pad.l+pw,z0); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad.l,pad.t); ctx.lineTo(pad.l,pad.t+ph); ctx.stroke();
+
+  ctx.fillStyle='#8891a8'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+  ctx.fillText(`${tMax.toFixed(1)}s`,pad.l+pw,pad.t+ph+18);
+
+  // Legend
+  document.getElementById('compare-legend').innerHTML=cases.map(({z,color})=>{
+    const po=z<1?Math.exp(-Math.PI*z/Math.sqrt(1-z*z))*100:0;
+    const ts=4/(z*wn);
+    const type=z<0.999?'Underdamped':z>1.001?'Overdamped':'Critical';
+    return `<div class="param-chip" style="border-color:${color}">
+      <span style="color:${color}">ζ=${z.toFixed(2)}</span>
+      ${po>0?`| %OS=${po.toFixed(1)}%`:''} | Ts≈${ts.toFixed(2)}s | ${type}
+    </div>`;
+  }).join('');
+}
+
+// ── Init ──────────────────────────────────────────
+window.addEventListener('load',()=>{
+  setTimeout(()=>{ updateRC(); },100);
+});
+window.addEventListener('resize',()=>{ updateRC(); updateMSD2(); });
+</script>
+</body>
+</html>

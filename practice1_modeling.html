@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Practice 1 – RLC & Mass-Spring-Damper Modeling</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --border: #2a2d3e;
+    --accent: #4f8ef7;
+    --accent2: #f7914f;
+    --green: #4fcc7a;
+    --text: #e8eaf0;
+    --muted: #8891a8;
+    --code-bg: #0d1117;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; min-height: 100vh; }
+
+  header {
+    background: linear-gradient(135deg, #1a1d27 0%, #0f1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 32px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  header .badge { background: var(--accent); color: #fff; border-radius: 6px; padding: 4px 12px; font-size: 13px; font-weight: 700; }
+  header h1 { font-size: 22px; font-weight: 700; }
+  header p { color: var(--muted); font-size: 14px; margin-top: 2px; }
+
+  .tabs { display: flex; gap: 4px; padding: 20px 32px 0; border-bottom: 1px solid var(--border); }
+  .tab { padding: 10px 20px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 14px; font-weight: 600;
+         border: 1px solid transparent; border-bottom: none; transition: all .2s; color: var(--muted); }
+  .tab.active { background: var(--card); border-color: var(--border); color: var(--text); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  .content { padding: 28px 32px; display: none; }
+  .content.active { display: block; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .card h3 .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  .eq-box { background: #0d1117; border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px;
+             font-family: 'Courier New', monospace; font-size: 13px; color: #c9d1d9; line-height: 1.9; margin-bottom: 12px; }
+  .eq-box .highlight { color: var(--accent); font-weight: bold; }
+  .eq-box .highlight2 { color: var(--accent2); font-weight: bold; }
+  .eq-box .comment { color: #6a737d; }
+
+  label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; margin-top: 12px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+  .val-display { font-size: 13px; color: var(--accent); font-weight: 700; float: right; }
+
+  canvas { width: 100%; height: 220px; border-radius: 8px; background: #0d1117;
+           border: 1px solid var(--border); display: block; }
+
+  .code-block { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px;
+                overflow: hidden; margin-top: 12px; }
+  .code-header { padding: 10px 16px; background: #161b22; border-bottom: 1px solid var(--border);
+                 display: flex; justify-content: space-between; align-items: center; }
+  .code-header span { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+  .lang-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700; }
+  .lang-matlab { background: #e44c1c22; color: #e44c1c; border: 1px solid #e44c1c44; }
+  .lang-python { background: #3572A522; color: #4d9fdb; border: 1px solid #3572A544; }
+  pre { padding: 16px; font-size: 12.5px; line-height: 1.75; overflow-x: auto; color: #c9d1d9; white-space: pre; }
+  .kw { color: #ff7b72; }
+  .fn { color: #d2a8ff; }
+  .str { color: #a5d6ff; }
+  .num { color: #f0883e; }
+  .cmt { color: #6a737d; font-style: italic; }
+  .var { color: #ffa657; }
+
+  .info-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .info-chip { background: #1f2335; border: 1px solid var(--border); border-radius: 20px;
+               padding: 5px 14px; font-size: 12px; color: var(--muted); }
+  .info-chip span { color: var(--text); font-weight: 600; }
+
+  .analogy { background: linear-gradient(135deg, #1a2744, #1a1d27); border: 1px solid #2a4080;
+             border-radius: 10px; padding: 16px 18px; margin-top: 14px; font-size: 13px; line-height: 1.7; color: #b0c4e8; }
+  .analogy strong { color: #7eb3f7; }
+
+  @media (max-width: 768px) { .grid2, .grid3 { grid-template-columns: 1fr; } .tabs { flex-wrap: wrap; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <span class="badge">PRACTICE 1</span>
+      <h1>System Modeling & Simulation</h1>
+    </div>
+    <p>RLC Circuits (Electrical) ↔ Mass-Spring-Damper (Mechanical) — MATLAB & Python</p>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('rlc')">⚡ RLC Circuit</div>
+  <div class="tab" onclick="switchTab('msd')">⚙️ Mass-Spring-Damper</div>
+  <div class="tab" onclick="switchTab('analogy')">🔗 Electrical ↔ Mechanical</div>
+  <div class="tab" onclick="switchTab('code')">💻 Full Code</div>
+</div>
+
+<!-- ==================== RLC TAB ==================== -->
+<div id="tab-rlc" class="content active">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--accent)"></span>Series RLC Circuit — Governing Equation</h3>
+        <div class="eq-box">
+          <span class="comment">// Applying KVL around the loop:</span><br>
+          V<sub>in</sub>(t) = V<sub>R</sub> + V<sub>L</sub> + V<sub>C</sub><br><br>
+          <span class="highlight">L·(d²i/dt²) + R·(di/dt) + (1/C)·i = dV<sub>in</sub>/dt</span><br><br>
+          <span class="comment">// Or in terms of charge q (i = dq/dt):</span><br>
+          <span class="highlight2">L·q'' + R·q' + (1/C)·q = V<sub>in</sub>(t)</span><br><br>
+          <span class="comment">// Transfer Function (s-domain):</span><br>
+          H(s) = I(s)/V(s) = <span class="highlight">s / (Ls² + Rs + 1/C)</span>
+        </div>
+        <div class="info-row">
+          <div class="info-chip">R = Resistance [Ω]</div>
+          <div class="info-chip">L = Inductance [H]</div>
+          <div class="info-chip">C = Capacitance [F]</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3><span class="dot" style="background:var(--green)"></span>Interactive Simulation</h3>
+
+        <label>Resistance R (Ω): <span class="val-display" id="R-val">10</span></label>
+        <input type="range" id="R-slider" min="1" max="50" value="10" oninput="updateRLC()">
+
+        <label>Inductance L (H): <span class="val-display" id="L-val">1.0</span></label>
+        <input type="range" id="L-slider" min="1" max="20" value="10" oninput="updateRLC()">
+
+        <label>Capacitance C (mF): <span class="val-display" id="C-val">10</span></label>
+        <input type="range" id="C-slider" min="1" max="50" value="10" oninput="updateRLC()">
+
+        <div style="margin-top:14px">
+          <canvas id="rlcCanvas"></canvas>
+        </div>
+
+        <div class="info-row" id="rlc-info"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--accent)"></span>MATLAB Code</h3>
+        <div class="code-block">
+          <div class="code-header">
+            <span>RLC Circuit — Transfer Function</span>
+            <span class="lang-badge lang-matlab">MATLAB</span>
+          </div>
+          <pre><span class="cmt">% Series RLC Circuit Simulation</span>
+<span class="cmt">% Parameters</span>
+<span class="var">R</span> = <span class="num">10</span>;    <span class="cmt">% Resistance (Ohms)</span>
+<span class="var">L</span> = <span class="num">1</span>;     <span class="cmt">% Inductance (H)</span>
+<span class="var">C</span> = <span class="num">0.01</span>;  <span class="cmt">% Capacitance (F)</span>
+
+<span class="cmt">% Transfer Function: Vc(s)/V(s) = 1/(LC) / (s^2 + R/L*s + 1/LC)</span>
+<span class="var">num</span> = [<span class="num">1</span>/(<span class="var">L</span>*<span class="var">C</span>)];
+<span class="var">den</span> = [<span class="num">1</span>, <span class="var">R</span>/<span class="var">L</span>, <span class="num">1</span>/(<span class="var">L</span>*<span class="var">C</span>)];
+<span class="var">sys</span> = <span class="fn">tf</span>(<span class="var">num</span>, <span class="var">den</span>);
+
+<span class="cmt">% Display system info</span>
+<span class="fn">disp</span>(<span class="str">'Transfer Function:'</span>); <span class="fn">disp</span>(<span class="var">sys</span>)
+<span class="fn">fprintf</span>(<span class="str">'Natural Freq wn = %.3f rad/s\n'</span>, <span class="num">1</span>/<span class="fn">sqrt</span>(<span class="var">L</span>*<span class="var">C</span>))
+<span class="fn">fprintf</span>(<span class="str">'Damping ratio z = %.3f\n'</span>, <span class="var">R</span>/<span class="num">2</span>*<span class="fn">sqrt</span>(<span class="var">C</span>/<span class="var">L</span>))
+
+<span class="cmt">% Step response</span>
+<span class="fn">figure</span>; <span class="fn">step</span>(<span class="var">sys</span>); <span class="fn">grid</span> on
+<span class="fn">title</span>(<span class="str">'RLC Step Response — Vc(t)'</span>)
+<span class="fn">xlabel</span>(<span class="str">'Time (s)'</span>); <span class="fn">ylabel</span>(<span class="str">'Voltage Vc (V)'</span>)
+
+<span class="cmt">% Pole-zero map</span>
+<span class="fn">figure</span>; <span class="fn">pzmap</span>(<span class="var">sys</span>); <span class="fn">grid</span> on
+<span class="fn">title</span>(<span class="str">'Pole-Zero Map'</span>)</pre>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3><span class="dot" style="background:#4d9fdb)"></span>Python Code</h3>
+        <div class="code-block">
+          <div class="code-header">
+            <span>RLC Circuit — scipy</span>
+            <span class="lang-badge lang-python">Python</span>
+          </div>
+          <pre><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">from</span> scipy <span class="kw">import</span> signal
+
+<span class="cmt"># Parameters</span>
+<span class="var">R</span> = <span class="num">10</span>    <span class="cmt"># Resistance (Ohms)</span>
+<span class="var">L</span> = <span class="num">1</span>     <span class="cmt"># Inductance (H)</span>
+<span class="var">C</span> = <span class="num">0.01</span>  <span class="cmt"># Capacitance (F)</span>
+
+<span class="cmt"># Transfer function Vc(s)/V(s)</span>
+<span class="var">wn</span> = <span class="num">1</span> / np.<span class="fn">sqrt</span>(<span class="var">L</span> * <span class="var">C</span>)
+<span class="var">zeta</span> = (<span class="var">R</span> / <span class="num">2</span>) * np.<span class="fn">sqrt</span>(<span class="var">C</span> / <span class="var">L</span>)
+<span class="fn">print</span>(<span class="str">f"wn = {wn:.3f} rad/s, zeta = {zeta:.3f}"</span>)
+
+<span class="var">num</span> = [<span class="var">wn</span>**<span class="num">2</span>]
+<span class="var">den</span> = [<span class="num">1</span>, <span class="num">2</span>*<span class="var">zeta</span>*<span class="var">wn</span>, <span class="var">wn</span>**<span class="num">2</span>]
+<span class="var">sys</span> = signal.<span class="fn">TransferFunction</span>(<span class="var">num</span>, <span class="var">den</span>)
+
+<span class="cmt"># Step response</span>
+<span class="var">t</span>, <span class="var">y</span> = signal.<span class="fn">step</span>(<span class="var">sys</span>)
+
+plt.<span class="fn">figure</span>(figsize=(<span class="num">10</span>, <span class="num">4</span>))
+plt.<span class="fn">plot</span>(<span class="var">t</span>, <span class="var">y</span>, <span class="str">'b-'</span>, linewidth=<span class="num">2</span>)
+plt.<span class="fn">title</span>(<span class="str">'RLC Circuit Step Response'</span>)
+plt.<span class="fn">xlabel</span>(<span class="str">'Time (s)'</span>)
+plt.<span class="fn">ylabel</span>(<span class="str">'Capacitor Voltage Vc(t)'</span>)
+plt.<span class="fn">grid</span>(<span class="kw">True</span>)
+plt.<span class="fn">show</span>()</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MSD TAB ==================== -->
+<div id="tab-msd" class="content">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--accent2)"></span>Mass-Spring-Damper — Governing Equation</h3>
+        <div class="eq-box">
+          <span class="comment">// Applying Newton's 2nd Law:</span><br>
+          ΣF = m·a<br><br>
+          F(t) - k·x - b·ẋ = m·ẍ<br><br>
+          <span class="highlight2">m·x'' + b·x' + k·x = F(t)</span><br><br>
+          <span class="comment">// Transfer Function X(s)/F(s):</span><br>
+          H(s) = <span class="highlight">1 / (ms² + bs + k)</span><br><br>
+          <span class="comment">// Natural frequency and damping:</span><br>
+          ωₙ = √(k/m) &nbsp;&nbsp; ζ = b / (2·√(k·m))
+        </div>
+        <div class="info-row">
+          <div class="info-chip">m = Mass [kg]</div>
+          <div class="info-chip">b = Damping [N·s/m]</div>
+          <div class="info-chip">k = Stiffness [N/m]</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3><span class="dot" style="background:var(--green)"></span>Interactive Simulation</h3>
+
+        <label>Mass m (kg): <span class="val-display" id="m-val">1.0</span></label>
+        <input type="range" id="m-slider" min="1" max="20" value="5" oninput="updateMSD()">
+
+        <label>Damping b (N·s/m): <span class="val-display" id="b-val">2.0</span></label>
+        <input type="range" id="b-slider" min="0" max="30" value="4" oninput="updateMSD()">
+
+        <label>Spring k (N/m): <span class="val-display" id="k-val">10</span></label>
+        <input type="range" id="k-slider" min="1" max="50" value="10" oninput="updateMSD()">
+
+        <div style="margin-top:14px">
+          <canvas id="msdCanvas"></canvas>
+        </div>
+
+        <div class="info-row" id="msd-info"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:#e44c1c)"></span>MATLAB Code</h3>
+        <div class="code-block">
+          <div class="code-header">
+            <span>Mass-Spring-Damper</span>
+            <span class="lang-badge lang-matlab">MATLAB</span>
+          </div>
+          <pre><span class="cmt">% Mass-Spring-Damper System</span>
+<span class="var">m</span> = <span class="num">1</span>;    <span class="cmt">% Mass (kg)</span>
+<span class="var">b</span> = <span class="num">2</span>;    <span class="cmt">% Damping coefficient (N.s/m)</span>
+<span class="var">k</span> = <span class="num">10</span>;   <span class="cmt">% Spring constant (N/m)</span>
+
+<span class="cmt">% Transfer Function: X(s)/F(s) = 1/(ms²+bs+k)</span>
+<span class="var">num</span> = [<span class="num">1</span>];
+<span class="var">den</span> = [<span class="var">m</span>, <span class="var">b</span>, <span class="var">k</span>];
+<span class="var">sys</span> = <span class="fn">tf</span>(<span class="var">num</span>, <span class="var">den</span>);
+
+<span class="cmt">% Natural frequency and damping ratio</span>
+<span class="var">wn</span> = <span class="fn">sqrt</span>(<span class="var">k</span>/<span class="var">m</span>);
+<span class="var">zeta</span> = <span class="var">b</span> / (<span class="num">2</span>*<span class="fn">sqrt</span>(<span class="var">m</span>*<span class="var">k</span>));
+<span class="fn">fprintf</span>(<span class="str">'wn = %.3f rad/s\n'</span>, <span class="var">wn</span>)
+<span class="fn">fprintf</span>(<span class="str">'zeta = %.3f\n'</span>, <span class="var">zeta</span>)
+
+<span class="kw">if</span> <span class="var">zeta</span> < <span class="num">1</span>
+  <span class="fn">disp</span>(<span class="str">'System: Underdamped (oscillates)'</span>)
+<span class="kw">elseif</span> <span class="var">zeta</span> == <span class="num">1</span>
+  <span class="fn">disp</span>(<span class="str">'System: Critically damped'</span>)
+<span class="kw">else</span>
+  <span class="fn">disp</span>(<span class="str">'System: Overdamped'</span>)
+<span class="kw">end</span>
+
+<span class="cmt">% Plot step response</span>
+<span class="fn">figure</span>; <span class="fn">step</span>(<span class="var">sys</span>); <span class="fn">grid</span> on
+<span class="fn">title</span>(<span class="str">'Mass-Spring-Damper Step Response'</span>)
+<span class="fn">xlabel</span>(<span class="str">'Time (s)'</span>); <span class="fn">ylabel</span>(<span class="str">'Displacement x(t) [m]'</span>)</pre>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3>Python Code</h3>
+        <div class="code-block">
+          <div class="code-header">
+            <span>Mass-Spring-Damper</span>
+            <span class="lang-badge lang-python">Python</span>
+          </div>
+          <pre><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">from</span> scipy <span class="kw">import</span> signal
+
+<span class="cmt"># Parameters</span>
+<span class="var">m</span> = <span class="num">1</span>     <span class="cmt"># Mass (kg)</span>
+<span class="var">b</span> = <span class="num">2</span>     <span class="cmt"># Damping (N.s/m)</span>
+<span class="var">k</span> = <span class="num">10</span>    <span class="cmt"># Spring constant (N/m)</span>
+
+<span class="cmt"># Transfer Function</span>
+<span class="var">num</span> = [<span class="num">1</span>]
+<span class="var">den</span> = [<span class="var">m</span>, <span class="var">b</span>, <span class="var">k</span>]
+<span class="var">sys</span> = signal.<span class="fn">TransferFunction</span>(<span class="var">num</span>, <span class="var">den</span>)
+
+<span class="cmt"># Classify system</span>
+<span class="var">wn</span> = np.<span class="fn">sqrt</span>(<span class="var">k</span> / <span class="var">m</span>)
+<span class="var">zeta</span> = <span class="var">b</span> / (<span class="num">2</span> * np.<span class="fn">sqrt</span>(<span class="var">m</span> * <span class="var">k</span>))
+<span class="fn">print</span>(<span class="str">f"wn={wn:.2f} rad/s | zeta={zeta:.2f}"</span>)
+
+<span class="kw">if</span> <span class="var">zeta</span> < <span class="num">1</span>:
+    <span class="fn">print</span>(<span class="str">"Underdamped — system oscillates"</span>)
+<span class="kw">elif</span> <span class="var">zeta</span> == <span class="num">1</span>:
+    <span class="fn">print</span>(<span class="str">"Critically damped"</span>)
+<span class="kw">else</span>:
+    <span class="fn">print</span>(<span class="str">"Overdamped"</span>)
+
+<span class="cmt"># Step response</span>
+<span class="var">t</span>, <span class="var">y</span> = signal.<span class="fn">step</span>(<span class="var">sys</span>)
+plt.<span class="fn">plot</span>(<span class="var">t</span>, <span class="var">y</span>); plt.<span class="fn">grid</span>(<span class="kw">True</span>)
+plt.<span class="fn">title</span>(<span class="str">'Mass-Spring-Damper Response'</span>)
+plt.<span class="fn">xlabel</span>(<span class="str">'Time (s)'</span>); plt.<span class="fn">ylabel</span>(<span class="str">'x(t) [m]'</span>)
+plt.<span class="fn">show</span>()</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ANALOGY TAB ==================== -->
+<div id="tab-analogy" class="content">
+  <div class="card">
+    <h3><span class="dot" style="background:var(--green)"></span>Electrical ↔ Mechanical Analogy Table</h3>
+    <div style="overflow-x:auto; margin-top:10px">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:#1f2335">
+            <th style="padding:12px 16px;text-align:left;color:var(--accent);border-bottom:2px solid var(--border)">Electrical (RLC)</th>
+            <th style="padding:12px 16px;text-align:left;color:var(--accent2);border-bottom:2px solid var(--border)">Mechanical (MSD)</th>
+            <th style="padding:12px 16px;text-align:left;color:var(--green);border-bottom:2px solid var(--border)">Unit / Role</th>
+          </tr>
+        </thead>
+        <tbody id="analogy-table">
+          <tr><td style="padding:10px 16px;border-bottom:1px solid var(--border)">Voltage V(t)</td><td style="padding:10px 16px;border-bottom:1px solid var(--border)">Force F(t)</td><td style="padding:10px 16px;border-bottom:1px solid var(--border)">Input / Source</td></tr>
+          <tr style="background:#1a1d27"><td style="padding:10px 16px;border-bottom:1px solid var(--border)">Current i(t)</td><td style="padding:10px 16px;border-bottom:1px solid var(--border)">Velocity ẋ(t)</td><td style="padding:10px 16px;border-bottom:1px solid var(--border)">Flow variable</td></tr>
+          <tr><td style="padding:10px 16px;border-bottom:1px solid var(--border)">Charge q(t)</td><td style="padding:10px 16px;border-bottom:1px solid var(--border)">Displacement x(t)</td><td style="padding:10px 16px;border-bottom:1px solid var(--border)">State variable</td></tr>
+          <tr style="background:#1a1d27"><td style="padding:10px 16px;border-bottom:1px solid var(--border)">Resistance R [Ω]</td><td style="padding:10px 16px;border-bottom:1px solid var(--border)">Damping b [N·s/m]</td><td style="padding:10px 16px;border-bottom:1px solid var(--border)">Energy dissipator</td></tr>
+          <tr><td style="padding:10px 16px;border-bottom:1px solid var(--border)">Inductance L [H]</td><td style="padding:10px 16px;border-bottom:1px solid var(--border)">Mass m [kg]</td><td style="padding:10px 16px;border-bottom:1px solid var(--border)">Energy storage (kinetic)</td></tr>
+          <tr style="background:#1a1d27"><td style="padding:10px 16px;border-bottom:1px solid var(--border)">Capacitance C [F]</td><td style="padding:10px 16px;border-bottom:1px solid var(--border)">1/k (compliance) [m/N]</td><td style="padding:10px 16px;border-bottom:1px solid var(--border)">Energy storage (potential)</td></tr>
+          <tr><td style="padding:10px 16px;border-bottom:1px solid var(--border)">L·i'' + R·i' + i/C = V'</td><td style="padding:10px 16px;border-bottom:1px solid var(--border)">m·x'' + b·x' + k·x = F</td><td style="padding:10px 16px;border-bottom:1px solid var(--border)">Governing ODE</td></tr>
+          <tr style="background:#1a1d27"><td style="padding:10px 16px">ωₙ = 1/√(LC)</td><td style="padding:10px 16px">ωₙ = √(k/m)</td><td style="padding:10px 16px">Natural Frequency</td></tr>
+          <tr><td style="padding:10px 16px">ζ = R/2·√(C/L)</td><td style="padding:10px 16px">ζ = b/(2√(mk))</td><td style="padding:10px 16px">Damping Ratio</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="analogy" style="margin-top:16px">
+      <strong>Key Insight:</strong> Both systems share the <em>same mathematical form</em> — a 2nd-order ODE. This means all analysis techniques (step response, pole-zero, frequency response) apply to both equally. R↔b, L↔m, 1/C↔k.
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:20px">
+    <div class="card">
+      <h3><span class="dot" style="background:var(--accent)"></span>Damping Regions (both systems)</h3>
+      <div class="eq-box" style="margin-bottom:8px">
+        ζ &lt; 1 → <span class="highlight">Underdamped</span> (oscillatory)<br>
+        ζ = 1 → <span style="color:var(--green)">Critically damped</span> (fastest no-overshoot)<br>
+        ζ &gt; 1 → <span class="highlight2">Overdamped</span> (slow, no overshoot)
+      </div>
+      <canvas id="dampingCanvas" style="height:160px"></canvas>
+    </div>
+    <div class="card">
+      <h3><span class="dot" style="background:var(--accent2)"></span>Equivalent Substitution</h3>
+      <div class="eq-box">
+        <span class="comment">// To convert RLC → MSD:</span><br>
+        Replace: L → m<br>
+        Replace: R → b<br>
+        Replace: 1/C → k<br>
+        Replace: V(t) → F(t)<br>
+        Replace: q(t) → x(t)<br><br>
+        <span class="comment">// Both give identical TF form:</span><br>
+        H(s) = <span class="highlight">ωₙ² / (s² + 2ζωₙs + ωₙ²)</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== CODE TAB ==================== -->
+<div id="tab-code" class="content">
+  <div class="grid2">
+    <div class="card">
+      <h3><span class="dot" style="background:#e44c1c"></span>Complete MATLAB Script</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span>practice1_complete.m</span>
+          <span class="lang-badge lang-matlab">MATLAB</span>
+        </div>
+        <pre><span class="cmt">%% Practice 1 – RLC & Mass-Spring-Damper Modeling
+% ================================================</span>
+<span class="fn">clear</span>; <span class="fn">clc</span>; <span class="fn">close</span> all
+
+<span class="cmt">%% ---- PART A: Series RLC Circuit ----</span>
+<span class="var">R</span> = <span class="num">10</span>;  <span class="var">L</span> = <span class="num">1</span>;  <span class="var">C</span> = <span class="num">0.01</span>;
+
+<span class="cmt">% Vc(s)/V(s) = (1/LC) / (s^2 + R/L*s + 1/LC)</span>
+<span class="var">wn_rlc</span> = <span class="num">1</span>/<span class="fn">sqrt</span>(<span class="var">L</span>*<span class="var">C</span>);
+<span class="var">z_rlc</span>  = (<span class="var">R</span>/<span class="num">2</span>)*<span class="fn">sqrt</span>(<span class="var">C</span>/<span class="var">L</span>);
+<span class="var">num_rlc</span> = [<span class="var">wn_rlc</span>^<span class="num">2</span>];
+<span class="var">den_rlc</span> = [<span class="num">1</span>, <span class="num">2</span>*<span class="var">z_rlc</span>*<span class="var">wn_rlc</span>, <span class="var">wn_rlc</span>^<span class="num">2</span>];
+<span class="var">G_rlc</span> = <span class="fn">tf</span>(<span class="var">num_rlc</span>, <span class="var">den_rlc</span>);
+<span class="fn">fprintf</span>(<span class="str">'\n--- RLC Circuit ---\n'</span>)
+<span class="fn">fprintf</span>(<span class="str">'wn = %.3f rad/s | zeta = %.3f\n'</span>, <span class="var">wn_rlc</span>, <span class="var">z_rlc</span>)
+<span class="fn">disp</span>(<span class="var">G_rlc</span>)
+
+<span class="cmt">%% ---- PART B: Mass-Spring-Damper ----</span>
+<span class="var">m</span> = <span class="num">1</span>;  <span class="var">b</span> = <span class="num">2</span>;  <span class="var">k</span> = <span class="num">10</span>;
+
+<span class="var">wn_msd</span> = <span class="fn">sqrt</span>(<span class="var">k</span>/<span class="var">m</span>);
+<span class="var">z_msd</span>  = <span class="var">b</span> / (<span class="num">2</span>*<span class="fn">sqrt</span>(<span class="var">m</span>*<span class="var">k</span>));
+<span class="var">G_msd</span> = <span class="fn">tf</span>([<span class="num">1</span>], [<span class="var">m</span>, <span class="var">b</span>, <span class="var">k</span>]);
+<span class="fn">fprintf</span>(<span class="str">'\n--- Mass-Spring-Damper ---\n'</span>)
+<span class="fn">fprintf</span>(<span class="str">'wn = %.3f rad/s | zeta = %.3f\n'</span>, <span class="var">wn_msd</span>, <span class="var">z_msd</span>)
+<span class="fn">disp</span>(<span class="var">G_msd</span>)
+
+<span class="cmt">%% ---- PLOTTING ----</span>
+<span class="fn">figure</span>(<span class="str">'Name'</span>, <span class="str">'Practice 1'</span>, <span class="str">'Position'</span>, [<span class="num">100 100 900 600</span>])
+
+<span class="fn">subplot</span>(<span class="num">2,2,1</span>); <span class="fn">step</span>(<span class="var">G_rlc</span>); <span class="fn">grid</span> on
+<span class="fn">title</span>(<span class="str">'RLC Step Response (Vc)'</span>)
+
+<span class="fn">subplot</span>(<span class="num">2,2,2</span>); <span class="fn">pzmap</span>(<span class="var">G_rlc</span>); <span class="fn">grid</span> on
+<span class="fn">title</span>(<span class="str">'RLC Pole-Zero Map'</span>)
+
+<span class="fn">subplot</span>(<span class="num">2,2,3</span>); <span class="fn">step</span>(<span class="var">G_msd</span>); <span class="fn">grid</span> on
+<span class="fn">title</span>(<span class="str">'MSD Step Response x(t)'</span>)
+
+<span class="fn">subplot</span>(<span class="num">2,2,4</span>); <span class="fn">pzmap</span>(<span class="var">G_msd</span>); <span class="fn">grid</span> on
+<span class="fn">title</span>(<span class="str">'MSD Pole-Zero Map'</span>)</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span class="dot" style="background:#4d9fdb"></span>Complete Python Script</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span>practice1_complete.py</span>
+          <span class="lang-badge lang-python">Python</span>
+        </div>
+        <pre><span class="cmt">"""Practice 1 – RLC & Mass-Spring-Damper Modeling"""</span>
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">from</span> scipy <span class="kw">import</span> signal
+
+<span class="cmt"># ── PART A: Series RLC Circuit ──────────────────</span>
+<span class="var">R</span>, <span class="var">L</span>, <span class="var">C</span> = <span class="num">10</span>, <span class="num">1</span>, <span class="num">0.01</span>
+<span class="var">wn_rlc</span> = <span class="num">1</span> / np.<span class="fn">sqrt</span>(<span class="var">L</span> * <span class="var">C</span>)
+<span class="var">z_rlc</span>  = (<span class="var">R</span> / <span class="num">2</span>) * np.<span class="fn">sqrt</span>(<span class="var">C</span> / <span class="var">L</span>)
+<span class="var">G_rlc</span> = signal.<span class="fn">TransferFunction</span>(
+    [<span class="var">wn_rlc</span>**<span class="num">2</span>],
+    [<span class="num">1</span>, <span class="num">2</span>*<span class="var">z_rlc</span>*<span class="var">wn_rlc</span>, <span class="var">wn_rlc</span>**<span class="num">2</span>]
+)
+<span class="fn">print</span>(<span class="str">f"RLC → wn={wn_rlc:.2f} rad/s, ζ={z_rlc:.3f}"</span>)
+
+<span class="cmt"># ── PART B: Mass-Spring-Damper ──────────────────</span>
+<span class="var">m</span>, <span class="var">b</span>, <span class="var">k</span> = <span class="num">1</span>, <span class="num">2</span>, <span class="num">10</span>
+<span class="var">wn_msd</span> = np.<span class="fn">sqrt</span>(<span class="var">k</span> / <span class="var">m</span>)
+<span class="var">z_msd</span>  = <span class="var">b</span> / (<span class="num">2</span> * np.<span class="fn">sqrt</span>(<span class="var">m</span> * <span class="var">k</span>))
+<span class="var">G_msd</span> = signal.<span class="fn">TransferFunction</span>([<span class="num">1</span>], [<span class="var">m</span>, <span class="var">b</span>, <span class="var">k</span>])
+<span class="fn">print</span>(<span class="str">f"MSD → wn={wn_msd:.2f} rad/s, ζ={z_msd:.3f}"</span>)
+
+<span class="cmt"># ── PLOTTING ────────────────────────────────────</span>
+<span class="var">fig</span>, <span class="var">axes</span> = plt.<span class="fn">subplots</span>(<span class="num">2</span>, <span class="num">2</span>, figsize=(<span class="num">12</span>, <span class="num">8</span>))
+<span class="var">fig</span>.suptitle(<span class="str">'Practice 1 – System Modeling'</span>, fontsize=<span class="num">14</span>)
+
+<span class="cmt"># RLC Step Response</span>
+<span class="var">t1</span>, <span class="var">y1</span> = signal.<span class="fn">step</span>(<span class="var">G_rlc</span>)
+<span class="var">axes</span>[<span class="num">0</span>,<span class="num">0</span>].<span class="fn">plot</span>(<span class="var">t1</span>, <span class="var">y1</span>, <span class="str">'b'</span>, lw=<span class="num">2</span>)
+<span class="var">axes</span>[<span class="num">0</span>,<span class="num">0</span>].<span class="fn">set_title</span>(<span class="str">'RLC Step Response (Vc)'</span>)
+<span class="var">axes</span>[<span class="num">0</span>,<span class="num">0</span>].<span class="fn">grid</span>(<span class="kw">True</span>)
+
+<span class="cmt"># RLC Poles</span>
+<span class="var">poles_rlc</span> = np.<span class="fn">roots</span>(<span class="var">G_rlc</span>.den)
+<span class="var">axes</span>[<span class="num">0</span>,<span class="num">1</span>].<span class="fn">scatter</span>(poles_rlc.real, poles_rlc.imag,
+              marker=<span class="str">'x'</span>, s=<span class="num">150</span>, c=<span class="str">'red'</span>, lw=<span class="num">3</span>)
+<span class="var">axes</span>[<span class="num">0</span>,<span class="num">1</span>].<span class="fn">axhline</span>(<span class="num">0</span>); <span class="var">axes</span>[<span class="num">0</span>,<span class="num">1</span>].<span class="fn">axvline</span>(<span class="num">0</span>)
+<span class="var">axes</span>[<span class="num">0</span>,<span class="num">1</span>].<span class="fn">set_title</span>(<span class="str">'RLC Pole-Zero Map'</span>); <span class="var">axes</span>[<span class="num">0</span>,<span class="num">1</span>].<span class="fn">grid</span>(<span class="kw">True</span>)
+
+<span class="cmt"># MSD Step Response</span>
+<span class="var">t2</span>, <span class="var">y2</span> = signal.<span class="fn">step</span>(<span class="var">G_msd</span>)
+<span class="var">axes</span>[<span class="num">1</span>,<span class="num">0</span>].<span class="fn">plot</span>(<span class="var">t2</span>, <span class="var">y2</span>, <span class="str">'orange'</span>, lw=<span class="num">2</span>)
+<span class="var">axes</span>[<span class="num">1</span>,<span class="num">0</span>].<span class="fn">set_title</span>(<span class="str">'MSD Step Response x(t)'</span>)
+<span class="var">axes</span>[<span class="num">1</span>,<span class="num">0</span>].<span class="fn">grid</span>(<span class="kw">True</span>)
+
+<span class="cmt"># MSD Poles</span>
+<span class="var">poles_msd</span> = np.<span class="fn">roots</span>(<span class="var">G_msd</span>.den)
+<span class="var">axes</span>[<span class="num">1</span>,<span class="num">1</span>].<span class="fn">scatter</span>(poles_msd.real, poles_msd.imag,
+              marker=<span class="str">'x'</span>, s=<span class="num">150</span>, c=<span class="str">'red'</span>, lw=<span class="num">3</span>)
+<span class="var">axes</span>[<span class="num">1</span>,<span class="num">1</span>].<span class="fn">axhline</span>(<span class="num">0</span>); <span class="var">axes</span>[<span class="num">1</span>,<span class="num">1</span>].<span class="fn">axvline</span>(<span class="num">0</span>)
+<span class="var">axes</span>[<span class="num">1</span>,<span class="num">1</span>].<span class="fn">set_title</span>(<span class="str">'MSD Pole-Zero Map'</span>); <span class="var">axes</span>[<span class="num">1</span>,<span class="num">1</span>].<span class="fn">grid</span>(<span class="kw">True</span>)
+
+plt.<span class="fn">tight_layout</span>()
+plt.<span class="fn">show</span>()</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if(name==='analogy') drawDampingCurves();
+}
+
+// ── RLC Simulation ──────────────────────────────
+function updateRLC() {
+  const R = +document.getElementById('R-slider').value;
+  const L = +document.getElementById('L-slider').value;
+  const C = +document.getElementById('C-slider').value / 1000;
+  document.getElementById('R-val').textContent = R;
+  document.getElementById('L-val').textContent = L.toFixed(1);
+  document.getElementById('C-val').textContent = (C*1000).toFixed(0);
+
+  const wn = 1 / Math.sqrt(L * C);
+  const zeta = (R / 2) * Math.sqrt(C / L);
+  drawResponse('rlcCanvas', wn, zeta, 'electric', '#4f8ef7');
+
+  const type = zeta < 0.999 ? '🔵 Underdamped' : zeta > 1.001 ? '🟠 Overdamped' : '🟢 Critically Damped';
+  document.getElementById('rlc-info').innerHTML =
+    `<div class="info-chip">ωₙ = <span>${wn.toFixed(2)} rad/s</span></div>
+     <div class="info-chip">ζ = <span>${zeta.toFixed(3)}</span></div>
+     <div class="info-chip">Type: <span>${type}</span></div>`;
+}
+
+// ── MSD Simulation ──────────────────────────────
+function updateMSD() {
+  const m = +document.getElementById('m-slider').value / 5;
+  const b = +document.getElementById('b-slider').value / 5;
+  const k = +document.getElementById('k-slider').value;
+  document.getElementById('m-val').textContent = m.toFixed(1);
+  document.getElementById('b-val').textContent = b.toFixed(1);
+  document.getElementById('k-val').textContent = k;
+
+  const wn = Math.sqrt(k / m);
+  const zeta = b / (2 * Math.sqrt(m * k));
+  drawResponse('msdCanvas', wn, zeta, 'mechanical', '#f7914f');
+
+  const type = zeta < 0.999 ? '🔵 Underdamped' : zeta > 1.001 ? '🟠 Overdamped' : '🟢 Critically Damped';
+  document.getElementById('msd-info').innerHTML =
+    `<div class="info-chip">ωₙ = <span>${wn.toFixed(2)} rad/s</span></div>
+     <div class="info-chip">ζ = <span>${zeta.toFixed(3)}</span></div>
+     <div class="info-chip">Type: <span>${type}</span></div>`;
+}
+
+// ── Generic 2nd-order step response ─────────────
+function stepResponse2nd(wn, zeta, tArr) {
+  return tArr.map(t => {
+    if (zeta < 1) {
+      const wd = wn * Math.sqrt(1 - zeta*zeta);
+      return 1 - Math.exp(-zeta*wn*t) * (Math.cos(wd*t) + (zeta/Math.sqrt(1-zeta*zeta))*Math.sin(wd*t));
+    } else if (zeta === 1) {
+      return 1 - Math.exp(-wn*t) * (1 + wn*t);
+    } else {
+      const r1 = -wn*(zeta - Math.sqrt(zeta*zeta-1));
+      const r2 = -wn*(zeta + Math.sqrt(zeta*zeta-1));
+      return 1 + (r1/(r2-r1))*Math.exp(r2*t) - (r2/(r2-r1))*Math.exp(r1*t);
+    }
+  });
+}
+
+function drawResponse(canvasId, wn, zeta, type, color) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth; const H = canvas.offsetHeight;
+  canvas.width = W * devicePixelRatio; canvas.height = H * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, W, H);
+
+  const pad = {l:40, r:20, t:20, b:30};
+  const pw = W - pad.l - pad.r;
+  const ph = H - pad.t - pad.b;
+
+  const tMax = Math.max(6, 8 / (zeta * wn + 0.1));
+  const N = 300;
+  const tArr = Array.from({length:N}, (_,i) => i/N * tMax);
+  const yArr = stepResponse2nd(wn, zeta, tArr);
+  const yMin = Math.min(0, ...yArr) * 1.1;
+  const yMax = Math.max(1.2, ...yArr) * 1.1;
+
+  // Grid
+  ctx.strokeStyle = '#1f2335'; ctx.lineWidth = 1;
+  for (let i=0; i<=5; i++) {
+    const x = pad.l + (i/5)*pw;
+    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t+ph); ctx.stroke();
+    const y = pad.t + (i/5)*ph;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l+pw, y); ctx.stroke();
+  }
+
+  // Steady-state line
+  const ss_y = pad.t + ph * (1 - (1-yMin)/(yMax-yMin));
+  ctx.strokeStyle = '#2a4080'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(pad.l, ss_y); ctx.lineTo(pad.l+pw, ss_y); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Axes
+  ctx.strokeStyle = '#8891a8'; ctx.lineWidth = 1.5;
+  const zero_y = pad.t + ph * (1 - (0-yMin)/(yMax-yMin));
+  ctx.beginPath(); ctx.moveTo(pad.l, zero_y); ctx.lineTo(pad.l+pw, zero_y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, pad.t+ph); ctx.stroke();
+
+  // Labels
+  ctx.fillStyle = '#8891a8'; ctx.font = '10px sans-serif';
+  ctx.fillText('0', pad.l-18, zero_y+4);
+  ctx.fillText('1', pad.l-14, ss_y+4);
+  ctx.fillText(`${tMax.toFixed(1)}s`, pad.l+pw-20, pad.t+ph+16);
+
+  // Response curve
+  const grad = ctx.createLinearGradient(pad.l, 0, pad.l+pw, 0);
+  grad.addColorStop(0, color); grad.addColorStop(1, color+'aa');
+  ctx.strokeStyle = grad; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  tArr.forEach((t,i) => {
+    const px = pad.l + (t/tMax)*pw;
+    const py = pad.t + ph * (1 - (yArr[i]-yMin)/(yMax-yMin));
+    i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+  });
+  ctx.stroke();
+
+  // Label
+  ctx.fillStyle = color; ctx.font = 'bold 11px sans-serif';
+  ctx.fillText(`ζ=${zeta.toFixed(2)} | ωₙ=${wn.toFixed(2)}`, pad.l+4, pad.t+14);
+}
+
+function drawDampingCurves() {
+  const canvas = document.getElementById('dampingCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth; const H = canvas.offsetHeight;
+  canvas.width = W*devicePixelRatio; canvas.height = H*devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  ctx.fillStyle='#0d1117'; ctx.fillRect(0,0,W,H);
+
+  const cases = [{z:0.2,c:'#4f8ef7',label:'ζ=0.2 Underdamped'},{z:1.0,c:'#4fcc7a',label:'ζ=1.0 Critical'},{z:2.0,c:'#f7914f',label:'ζ=2.0 Overdamped'}];
+  const pad={l:10,r:10,t:10,b:10}; const pw=W-pad.l-pad.r; const ph=H-pad.t-pad.b;
+  const N=200; const wn=3;
+  cases.forEach(({z,c,label},idx)=>{
+    const tArr=Array.from({length:N},(_,i)=>i/N*6);
+    const yArr=stepResponse2nd(wn,z,tArr);
+    ctx.strokeStyle=c; ctx.lineWidth=2;
+    ctx.beginPath();
+    tArr.forEach((t,i)=>{
+      const px=pad.l+(t/6)*pw;
+      const py=pad.t+ph*(1-Math.max(0,Math.min(1.5,yArr[i]))/1.5);
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    });
+    ctx.stroke();
+    ctx.fillStyle=c; ctx.font='10px sans-serif';
+    ctx.fillText(label, pad.l+4, pad.t+14+idx*14);
+  });
+}
+
+// Init
+updateRLC();
+updateMSD();
+</script>
+</body>
+</html>

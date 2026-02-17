@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Practice 2 – Block Diagram Reduction & Transfer Functions</title>
+<style>
+  :root {
+    --bg: #0f1117; --card: #1a1d27; --border: #2a2d3e;
+    --accent: #4f8ef7; --accent2: #f7914f; --green: #4fcc7a;
+    --purple: #b07af7; --text: #e8eaf0; --muted: #8891a8;
+    --code-bg: #0d1117;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; min-height: 100vh; }
+
+  header {
+    background: linear-gradient(135deg, #1a1d27, #0f1117);
+    border-bottom: 1px solid var(--border);
+    padding: 22px 32px; display: flex; align-items: center; gap: 14px;
+  }
+  .badge { background: var(--accent2); color: #fff; border-radius: 6px; padding: 4px 12px; font-size: 13px; font-weight: 700; }
+  header h1 { font-size: 21px; font-weight: 700; }
+  header p { color: var(--muted); font-size: 13px; margin-top: 3px; }
+
+  .tabs { display: flex; gap: 4px; padding: 18px 32px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .tab { padding: 9px 18px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 13px; font-weight: 600;
+         border: 1px solid transparent; border-bottom: none; transition: all .2s; color: var(--muted); }
+  .tab.active { background: var(--card); border-color: var(--border); color: var(--text); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  .content { padding: 26px 32px; display: none; }
+  .content.active { display: block; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .card h3 { font-size: 14px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+
+  /* Block Diagram Canvas */
+  .bd-canvas { width: 100%; border-radius: 10px; border: 1px solid var(--border); background: #0d1117; display: block; }
+
+  /* Formula box */
+  .eq-box { background: #0d1117; border: 1px solid var(--border); border-radius: 8px;
+            padding: 14px 18px; font-family: 'Courier New', monospace; font-size: 13px;
+            color: #c9d1d9; line-height: 2; margin-bottom: 12px; }
+  .hl  { color: var(--accent); font-weight: bold; }
+  .hl2 { color: var(--accent2); font-weight: bold; }
+  .hl3 { color: var(--green); font-weight: bold; }
+  .cmt { color: #6a737d; font-style: italic; }
+
+  /* Code blocks */
+  .code-block { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 12px; }
+  .code-header { padding: 9px 16px; background: #161b22; border-bottom: 1px solid var(--border);
+                 display: flex; justify-content: space-between; align-items: center; }
+  .code-header span { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+  .lang-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700; }
+  .lang-matlab { background: #e44c1c22; color: #e44c1c; border: 1px solid #e44c1c44; }
+  .lang-python { background: #3572A522; color: #4d9fdb; border: 1px solid #3572A544; }
+  pre { padding: 16px; font-size: 12px; line-height: 1.75; overflow-x: auto; color: #c9d1d9; white-space: pre; }
+  .kw  { color: #ff7b72; } .fn { color: #d2a8ff; } .str { color: #a5d6ff; }
+  .num { color: #f0883e; } .cm  { color: #6a737d; font-style: italic; } .vr { color: #ffa657; }
+
+  /* Controls */
+  label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 3px; margin-top: 10px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+  select { background: #1f2335; color: var(--text); border: 1px solid var(--border);
+           border-radius: 6px; padding: 6px 10px; font-size: 13px; width: 100%; cursor: pointer; }
+  .val-disp { color: var(--accent); font-weight: 700; float: right; font-size: 12px; }
+
+  /* Info chips */
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .chip { background: #1f2335; border: 1px solid var(--border); border-radius: 20px;
+          padding: 4px 12px; font-size: 12px; color: var(--muted); }
+  .chip span { color: var(--text); font-weight: 600; }
+
+  /* Rule cards */
+  .rule-card { background: #1f2335; border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0;
+               padding: 12px 16px; margin-bottom: 10px; }
+  .rule-card h4 { font-size: 13px; color: var(--accent); margin-bottom: 6px; }
+  .rule-card p  { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .rule-card .formula { font-family: monospace; color: var(--green); font-size: 13px; margin-top: 6px; }
+
+  canvas { display: block; }
+  @media(max-width:768px){ .grid2{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <span class="badge">PRACTICE 2</span>
+      <h1>Block Diagram Reduction & Transfer Functions</h1>
+    </div>
+    <p>Series · Parallel · Feedback · Mason's Rule — Interactive Visualizer + MATLAB & Python Code</p>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('rules')">📐 Reduction Rules</div>
+  <div class="tab" onclick="switchTab('interactive')">🎮 Interactive Reducer</div>
+  <div class="tab" onclick="switchTab('feedback')">🔄 Feedback Systems</div>
+  <div class="tab" onclick="switchTab('code')">💻 MATLAB & Python</div>
+</div>
+
+<!-- ===================== RULES TAB ===================== -->
+<div id="tab-rules" class="content active">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--accent)"></span>Block Diagram Algebra Rules</h3>
+
+        <div class="rule-card">
+          <h4>① Series (Cascade) Connection</h4>
+          <p>Blocks connected in series multiply their transfer functions.</p>
+          <div class="formula">G_eq(s) = G₁(s) · G₂(s) · G₃(s) · ···</div>
+        </div>
+
+        <div class="rule-card" style="border-color:var(--accent2)">
+          <h4 style="color:var(--accent2)">② Parallel Connection</h4>
+          <p>Blocks connected in parallel add their transfer functions.</p>
+          <div class="formula" style="color:var(--accent2)">G_eq(s) = G₁(s) + G₂(s) + G₃(s) + ···</div>
+        </div>
+
+        <div class="rule-card" style="border-color:var(--green)">
+          <h4 style="color:var(--green)">③ Unity Negative Feedback</h4>
+          <p>Forward path G(s), feedback H(s) = 1.</p>
+          <div class="formula" style="color:var(--green)">T(s) = G(s) / (1 + G(s))</div>
+        </div>
+
+        <div class="rule-card" style="border-color:var(--purple)">
+          <h4 style="color:var(--purple)">④ General Feedback Loop</h4>
+          <p>Forward path G(s), feedback path H(s).</p>
+          <div class="formula" style="color:var(--purple)">T(s) = G(s) / (1 ± G(s)·H(s))</div>
+          <p style="margin-top:4px">− for negative feedback &nbsp;|&nbsp; + for positive feedback</p>
+        </div>
+
+        <div class="rule-card" style="border-color:#f7514f">
+          <h4 style="color:#f7514f">⑤ Moving a Summing Junction</h4>
+          <p>Move summing junction ahead of block G: divide added branch by G.<br>
+             Move summing junction behind block G: multiply added branch by G.</p>
+        </div>
+
+        <div class="rule-card" style="border-color:#f7d14f">
+          <h4 style="color:#f7d14f">⑥ Moving a Takeoff Point</h4>
+          <p>Move takeoff point ahead of G: multiply branch by G.<br>
+             Move takeoff point behind G: divide branch by G.</p>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--accent2)"></span>Visual Block Diagrams</h3>
+        <label>Select connection type:</label>
+        <select id="diagram-select" onchange="drawDiagram()">
+          <option value="series">Series (Cascade)</option>
+          <option value="parallel">Parallel</option>
+          <option value="unity-feedback">Unity Negative Feedback</option>
+          <option value="general-feedback">General Feedback Loop</option>
+        </select>
+        <canvas id="diagramCanvas" class="bd-canvas" style="margin-top:14px;height:200px"></canvas>
+        <div id="diagram-eq" class="eq-box" style="margin-top:12px;font-size:14px;text-align:center"></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3><span class="dot" style="background:var(--green)"></span>Reduction Procedure</h3>
+        <ol style="font-size:13px;line-height:2;padding-left:18px;color:var(--muted)">
+          <li>Identify all <span style="color:var(--text)">series blocks</span> — combine by multiplication.</li>
+          <li>Identify all <span style="color:var(--text)">parallel branches</span> — combine by addition.</li>
+          <li>Reduce all <span style="color:var(--text)">feedback loops</span> using T = G/(1±GH).</li>
+          <li>Move <span style="color:var(--text)">summing junctions / takeoff points</span> if needed.</li>
+          <li>Repeat steps 1–4 until a <span style="color:var(--green)">single block</span> remains.</li>
+          <li>The result is the <span style="color:var(--accent)">equivalent Transfer Function T(s)</span>.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== INTERACTIVE TAB ===================== -->
+<div id="tab-interactive" class="content">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--accent)"></span>Build Your Block Diagram</h3>
+        <label>Topology:</label>
+        <select id="topo-select" onchange="updateInteractive()">
+          <option value="series2">Two Blocks in Series</option>
+          <option value="series3">Three Blocks in Series</option>
+          <option value="parallel">Two Blocks in Parallel</option>
+          <option value="feedback-unity">Unity Feedback Loop</option>
+          <option value="feedback-general">General Feedback Loop</option>
+          <option value="cascade-feedback">Series + Feedback (Complex)</option>
+        </select>
+
+        <div id="param-controls" style="margin-top:14px"></div>
+        <canvas id="interCanvas" class="bd-canvas" style="margin-top:14px;height:220px"></canvas>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--green)"></span>Equivalent Transfer Function</h3>
+        <div id="tf-result" class="eq-box" style="min-height:80px;font-size:14px"></div>
+
+        <h3 style="margin-top:16px"><span class="dot" style="background:var(--accent2)"></span>Step Response</h3>
+        <canvas id="stepCanvas" class="bd-canvas" style="height:200px"></canvas>
+        <div class="chips" id="step-info"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== FEEDBACK TAB ===================== -->
+<div id="tab-feedback" class="content">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--accent)"></span>Closed-Loop Analysis</h3>
+        <div class="eq-box">
+          <span class="cmt">// Standard Feedback Loop:</span><br><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hl">E(s)</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hl2">G(s)</span><br>
+          R(s) ──[+]────────── G(s) ──── Y(s)<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;[-]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└──────── H(s) ◄──────┘<br><br>
+          <span class="cmt">// Closed-loop TF:</span><br>
+          T(s) = <span class="hl3">G(s) / (1 + G(s)·H(s))</span><br><br>
+          <span class="cmt">// Error TF:</span><br>
+          E(s)/R(s) = <span class="hl2">1 / (1 + G(s)·H(s))</span>
+        </div>
+
+        <label>Forward Gain K: <span class="val-disp" id="K-val">10</span></label>
+        <input type="range" id="K-slider" min="1" max="100" value="10" oninput="updateFeedback()">
+
+        <label>Feedback gain H: <span class="val-disp" id="H-val">1.0</span></label>
+        <input type="range" id="H-slider" min="1" max="20" value="10" oninput="updateFeedback()">
+
+        <label>Damping ζ (plant): <span class="val-disp" id="Z-val">0.5</span></label>
+        <input type="range" id="Z-slider" min="1" max="20" value="5" oninput="updateFeedback()">
+
+        <div class="chips" id="fb-chips" style="margin-top:14px"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--accent2)"></span>Open vs Closed-Loop Response</h3>
+        <canvas id="fbCanvas" class="bd-canvas" style="height:240px"></canvas>
+        <div class="eq-box" id="fb-tf" style="margin-top:12px;font-size:13px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <h3><span class="dot" style="background:var(--purple)"></span>Effects of Feedback</h3>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:10px">
+      <div style="background:#1f2335;border-radius:8px;padding:14px;border-left:3px solid var(--green)">
+        <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:6px">✓ Reduces Sensitivity</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">System becomes less sensitive to plant parameter variations by factor (1+GH).</div>
+      </div>
+      <div style="background:#1f2335;border-radius:8px;padding:14px;border-left:3px solid var(--accent)">
+        <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px">✓ Reduces Steady-State Error</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">Error is reduced by the loop gain. Higher K → lower steady-state error.</div>
+      </div>
+      <div style="background:#1f2335;border-radius:8px;padding:14px;border-left:3px solid var(--accent2)">
+        <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:6px">⚠ Can Cause Instability</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">High loop gain can push poles to the RHP, making the system unstable.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CODE TAB ===================== -->
+<div id="tab-code" class="content">
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:#e44c1c"></span>MATLAB — Complete Script</h3>
+        <div class="code-block">
+          <div class="code-header">
+            <span>practice2_block_diagrams.m</span>
+            <span class="lang-badge lang-matlab">MATLAB</span>
+          </div>
+<pre><span class="cm">%% Practice 2 – Block Diagram Reduction (MATLAB)
+% Uses Control System Toolbox</span>
+<span class="kw">clear</span>; <span class="kw">clc</span>; <span class="kw">close</span> all
+
+<span class="cm">%% ── Define Individual Blocks ──────────────────────</span>
+s = <span class="fn">tf</span>(<span class="str">'s'</span>);               <span class="cm">% Laplace variable</span>
+
+<span class="vr">G1</span> = <span class="num">10</span> / (s + <span class="num">2</span>);          <span class="cm">% Block G1</span>
+<span class="vr">G2</span> = <span class="num">1</span>  / (s + <span class="num">5</span>);          <span class="cm">% Block G2</span>
+<span class="vr">G3</span> = <span class="num">5</span>  / (s^<span class="num">2</span> + s + <span class="num">4</span>);  <span class="cm">% Block G3</span>
+<span class="vr">H1</span> = <span class="num">1</span>  / (s + <span class="num">1</span>);          <span class="cm">% Feedback H1</span>
+
+<span class="cm">%% ── Rule 1: Series (Cascade) ──────────────────────</span>
+<span class="vr">G_series</span> = <span class="fn">series</span>(<span class="vr">G1</span>, <span class="vr">G2</span>);
+<span class="fn">fprintf</span>(<span class="str">'\n[SERIES] G1*G2:\n'</span>); <span class="fn">disp</span>(<span class="vr">G_series</span>)
+
+<span class="cm">%% ── Rule 2: Parallel ──────────────────────────────</span>
+<span class="vr">G_parallel</span> = <span class="fn">parallel</span>(<span class="vr">G1</span>, <span class="vr">G2</span>);
+<span class="fn">fprintf</span>(<span class="str">'[PARALLEL] G1+G2:\n'</span>); <span class="fn">disp</span>(<span class="vr">G_parallel</span>)
+
+<span class="cm">%% ── Rule 3: Unity Negative Feedback ──────────────</span>
+<span class="vr">T_unity</span> = <span class="fn">feedback</span>(<span class="vr">G1</span>, <span class="num">1</span>);  <span class="cm">% feedback(G, H=1)</span>
+<span class="fn">fprintf</span>(<span class="str">'[UNITY FB] G1/(1+G1):\n'</span>); <span class="fn">disp</span>(<span class="vr">T_unity</span>)
+
+<span class="cm">%% ── Rule 4: General Feedback Loop ────────────────</span>
+<span class="vr">T_general</span> = <span class="fn">feedback</span>(<span class="vr">G1</span>*<span class="vr">G2</span>, <span class="vr">H1</span>);
+<span class="fn">fprintf</span>(<span class="str">'[GENERAL FB] G1G2/(1+G1G2H1):\n'</span>)
+<span class="fn">disp</span>(<span class="vr">T_general</span>)
+
+<span class="cm">%% ── Complex Reduction: Series + Feedback ─────────</span>
+<span class="cm">% Inner loop: G2 with H1 feedback</span>
+<span class="vr">T_inner</span> = <span class="fn">feedback</span>(<span class="vr">G2</span>, <span class="vr">H1</span>);
+<span class="cm">% Cascade G1 with inner loop</span>
+<span class="vr">G_forward</span> = <span class="fn">series</span>(<span class="vr">G1</span>, <span class="vr">T_inner</span>);
+<span class="cm">% Outer unity feedback</span>
+<span class="vr">T_total</span> = <span class="fn">feedback</span>(<span class="vr">G_forward</span>, <span class="num">1</span>);
+<span class="fn">disp</span>(<span class="str">'[COMPLEX] Final T(s):'</span>); <span class="fn">disp</span>(<span class="vr">T_total</span>)
+
+<span class="cm">%% ── Plot All Step Responses ───────────────────────</span>
+<span class="fn">figure</span>(<span class="str">'Position'</span>, [<span class="num">50 50 1000 600</span>])
+
+<span class="fn">subplot</span>(<span class="num">2,2,1</span>); <span class="fn">step</span>(<span class="vr">G_series</span>);  <span class="fn">grid</span> on; <span class="fn">title</span>(<span class="str">'Series: G1*G2'</span>)
+<span class="fn">subplot</span>(<span class="num">2,2,2</span>); <span class="fn">step</span>(<span class="vr">G_parallel</span>); <span class="fn">grid</span> on; <span class="fn">title</span>(<span class="str">'Parallel: G1+G2'</span>)
+<span class="fn">subplot</span>(<span class="num">2,2,3</span>); <span class="fn">step</span>(<span class="vr">T_unity</span>);   <span class="fn">grid</span> on; <span class="fn">title</span>(<span class="str">'Unity Feedback'</span>)
+<span class="fn">subplot</span>(<span class="num">2,2,4</span>); <span class="fn">step</span>(<span class="vr">T_total</span>);   <span class="fn">grid</span> on; <span class="fn">title</span>(<span class="str">'Complex Reduction'</span>)
+<span class="fn">sgtitle</span>(<span class="str">'Practice 2 – Block Diagram Reduction Results'</span>)
+
+<span class="cm">%% ── Pole-Zero Maps ────────────────────────────────</span>
+<span class="fn">figure</span>(<span class="str">'Position'</span>, [<span class="num">50 700 600 400</span>])
+<span class="fn">pzmap</span>(<span class="vr">T_unity</span>, <span class="vr">T_general</span>, <span class="vr">T_total</span>); <span class="fn">grid</span> on
+<span class="fn">legend</span>(<span class="str">'Unity FB'</span>, <span class="str">'General FB'</span>, <span class="str">'Complex'</span>)
+<span class="fn">title</span>(<span class="str">'Pole-Zero Comparison'</span>)</pre>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3><span class="dot" style="background:#4d9fdb"></span>Python — Complete Script</h3>
+        <div class="code-block">
+          <div class="code-header">
+            <span>practice2_block_diagrams.py</span>
+            <span class="lang-badge lang-python">Python</span>
+          </div>
+<pre><span class="cm">"""Practice 2 – Block Diagram Reduction (Python)
+   Uses: control, scipy, numpy, matplotlib
+   Install: pip install control scipy matplotlib
+"""</span>
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> control
+
+<span class="cm"># ── Define Individual Blocks ─────────────────────</span>
+<span class="vr">G1</span> = control.<span class="fn">tf</span>([<span class="num">10</span>],       [<span class="num">1</span>, <span class="num">2</span>])
+<span class="vr">G2</span> = control.<span class="fn">tf</span>([<span class="num">1</span>],        [<span class="num">1</span>, <span class="num">5</span>])
+<span class="vr">G3</span> = control.<span class="fn">tf</span>([<span class="num">5</span>],        [<span class="num">1</span>, <span class="num">1</span>, <span class="num">4</span>])
+<span class="vr">H1</span> = control.<span class="fn">tf</span>([<span class="num">1</span>],        [<span class="num">1</span>, <span class="num">1</span>])
+
+<span class="cm"># ── Rule 1: Series ───────────────────────────────</span>
+<span class="vr">G_series</span> = control.<span class="fn">series</span>(<span class="vr">G1</span>, <span class="vr">G2</span>)
+<span class="fn">print</span>(<span class="str">"[SERIES] G1*G2:"</span>, <span class="vr">G_series</span>)
+
+<span class="cm"># ── Rule 2: Parallel ─────────────────────────────</span>
+<span class="vr">G_parallel</span> = control.<span class="fn">parallel</span>(<span class="vr">G1</span>, <span class="vr">G2</span>)
+<span class="fn">print</span>(<span class="str">"[PARALLEL] G1+G2:"</span>, <span class="vr">G_parallel</span>)
+
+<span class="cm"># ── Rule 3: Unity Negative Feedback ──────────────</span>
+<span class="vr">T_unity</span> = control.<span class="fn">feedback</span>(<span class="vr">G1</span>, <span class="num">1</span>)
+<span class="fn">print</span>(<span class="str">"[UNITY FB]:"</span>, <span class="vr">T_unity</span>)
+
+<span class="cm"># ── Rule 4: General Feedback Loop ────────────────</span>
+<span class="vr">T_general</span> = control.<span class="fn">feedback</span>(<span class="vr">G1</span> * <span class="vr">G2</span>, <span class="vr">H1</span>)
+<span class="fn">print</span>(<span class="str">"[GENERAL FB]:"</span>, <span class="vr">T_general</span>)
+
+<span class="cm"># ── Complex: Inner + Outer Loop ──────────────────</span>
+<span class="vr">T_inner</span>   = control.<span class="fn">feedback</span>(<span class="vr">G2</span>, <span class="vr">H1</span>)
+<span class="vr">G_forward</span> = control.<span class="fn">series</span>(<span class="vr">G1</span>, <span class="vr">T_inner</span>)
+<span class="vr">T_total</span>   = control.<span class="fn">feedback</span>(<span class="vr">G_forward</span>, <span class="num">1</span>)
+<span class="fn">print</span>(<span class="str">"[COMPLEX]:"</span>, <span class="vr">T_total</span>)
+
+<span class="cm"># ── Step Responses ───────────────────────────────</span>
+<span class="vr">systems</span> = [<span class="vr">G_series</span>, <span class="vr">G_parallel</span>, <span class="vr">T_unity</span>, <span class="vr">T_total</span>]
+<span class="vr">titles</span>  = [<span class="str">'Series G1*G2'</span>, <span class="str">'Parallel G1+G2'</span>,
+            <span class="str">'Unity Feedback'</span>, <span class="str">'Complex Reduction'</span>]
+
+<span class="vr">fig</span>, <span class="vr">axes</span> = plt.<span class="fn">subplots</span>(<span class="num">2</span>, <span class="num">2</span>, figsize=(<span class="num">12</span>, <span class="num">8</span>))
+<span class="vr">fig</span>.suptitle(<span class="str">'Practice 2 – Block Diagram Results'</span>,
+             fontsize=<span class="num">14</span>, fontweight=<span class="str">'bold'</span>)
+
+<span class="kw">for</span> <span class="vr">ax</span>, <span class="vr">sys</span>, <span class="vr">title</span> <span class="kw">in</span> <span class="fn">zip</span>(<span class="vr">axes</span>.flat, <span class="vr">systems</span>, <span class="vr">titles</span>):
+    <span class="vr">t</span>, <span class="vr">y</span> = control.<span class="fn">step_response</span>(<span class="vr">sys</span>)
+    <span class="vr">ax</span>.<span class="fn">plot</span>(<span class="vr">t</span>, <span class="vr">y</span>, linewidth=<span class="num">2</span>)
+    <span class="vr">ax</span>.<span class="fn">set_title</span>(<span class="vr">title</span>); <span class="vr">ax</span>.<span class="fn">grid</span>(<span class="kw">True</span>, alpha=<span class="num">0.4</span>)
+    <span class="vr">ax</span>.<span class="fn">set_xlabel</span>(<span class="str">'Time (s)'</span>)
+    <span class="vr">ax</span>.<span class="fn">set_ylabel</span>(<span class="str">'Output'</span>)
+
+plt.<span class="fn">tight_layout</span>()
+plt.<span class="fn">show</span>()
+
+<span class="cm"># ── Pole-Zero Map ─────────────────────────────────</span>
+<span class="vr">fig2</span>, <span class="vr">ax2</span> = plt.<span class="fn">subplots</span>(figsize=(<span class="num">7</span>, <span class="num">5</span>))
+<span class="kw">for</span> <span class="vr">sys</span>, <span class="vr">label</span>, <span class="vr">clr</span> <span class="kw">in</span> <span class="fn">zip</span>(
+        [<span class="vr">T_unity</span>, <span class="vr">T_general</span>, <span class="vr">T_total</span>],
+        [<span class="str">'Unity FB'</span>, <span class="str">'General FB'</span>, <span class="str">'Complex'</span>],
+        [<span class="str">'blue'</span>, <span class="str">'orange'</span>, <span class="str">'green'</span>]):
+    <span class="vr">poles</span> = np.<span class="fn">roots</span>(<span class="vr">sys</span>.den[<span class="num">0</span>][<span class="num">0</span>])
+    <span class="vr">zeros</span> = np.<span class="fn">roots</span>(<span class="vr">sys</span>.num[<span class="num">0</span>][<span class="num">0</span>])
+    <span class="vr">ax2</span>.<span class="fn">scatter</span>(<span class="vr">poles</span>.real, <span class="vr">poles</span>.imag,
+                marker=<span class="str">'x'</span>, s=<span class="num">120</span>, c=<span class="vr">clr</span>, lw=<span class="num">2</span>, label=<span class="vr">label</span>)
+<span class="vr">ax2</span>.<span class="fn">axhline</span>(<span class="num">0</span>); <span class="vr">ax2</span>.<span class="fn">axvline</span>(<span class="num">0</span>); <span class="vr">ax2</span>.<span class="fn">grid</span>(<span class="kw">True</span>)
+<span class="vr">ax2</span>.<span class="fn">legend</span>(); <span class="vr">ax2</span>.<span class="fn">set_title</span>(<span class="str">'Pole-Zero Map Comparison'</span>)
+plt.<span class="fn">show</span>()</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ───────────────────────────────────────────────────────
+// TAB SWITCHING
+// ───────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'interactive') updateInteractive();
+  if (name === 'feedback')    updateFeedback();
+  if (name === 'rules')       { setTimeout(drawDiagram, 50); }
+}
+
+// ───────────────────────────────────────────────────────
+// DRAWING HELPERS
+// ───────────────────────────────────────────────────────
+function setupCanvas(id) {
+  const c = document.getElementById(id);
+  const W = c.offsetWidth, H = c.offsetHeight;
+  c.width  = W * devicePixelRatio;
+  c.height = H * devicePixelRatio;
+  const ctx = c.getContext('2d');
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, W, H);
+  return { ctx, W, H };
+}
+
+function drawBlock(ctx, x, y, w, h, label, color='#4f8ef7') {
+  ctx.fillStyle = color + '22';
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, 4); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#e8eaf0'; ctx.font = 'bold 11px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(label, x + w/2, y + h/2);
+}
+
+function drawArrow(ctx, x1, y1, x2, y2, color='#8891a8') {
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.fillStyle = color;
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  const angle = Math.atan2(y2-y1, x2-x1);
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - 8*Math.cos(angle-0.4), y2 - 8*Math.sin(angle-0.4));
+  ctx.lineTo(x2 - 8*Math.cos(angle+0.4), y2 - 8*Math.sin(angle+0.4));
+  ctx.closePath(); ctx.fill();
+}
+
+function drawSummer(ctx, cx, cy, r=14, color='#4fcc7a') {
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+  ctx.fillStyle = color; ctx.font = 'bold 14px sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('Σ', cx, cy);
+}
+
+function drawLabel(ctx, x, y, text, color='#8891a8', size=11) {
+  ctx.fillStyle = color; ctx.font = `${size}px sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+}
+
+// ───────────────────────────────────────────────────────
+// RULES TAB — DIAGRAM
+// ───────────────────────────────────────────────────────
+function drawDiagram() {
+  const type = document.getElementById('diagram-select').value;
+  const {ctx, W, H} = setupCanvas('diagramCanvas');
+  const bw=80, bh=34, my=H/2;
+
+  const eqEl = document.getElementById('diagram-eq');
+
+  if (type === 'series') {
+    drawLabel(ctx, 28, my, 'R(s)', '#e8eaf0', 12);
+    drawArrow(ctx, 50, my, 80, my);
+    drawBlock(ctx, 80, my-17, bw, bh, 'G₁(s)', '#4f8ef7');
+    drawArrow(ctx, 160, my, 200, my);
+    drawBlock(ctx, 200, my-17, bw, bh, 'G₂(s)', '#4f8ef7');
+    drawArrow(ctx, 280, my, 320, my);
+    drawLabel(ctx, W-20, my, 'Y(s)', '#e8eaf0', 12);
+    eqEl.innerHTML = '<span class="hl">G<sub>eq</sub>(s) = G₁(s) · G₂(s)</span>';
+
+  } else if (type === 'parallel') {
+    drawLabel(ctx, 28, my, 'R(s)', '#e8eaf0', 12);
+    drawArrow(ctx, 50, my, 70, my);
+    ctx.strokeStyle='#8891a8'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(70,my); ctx.lineTo(70,my-45); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(70,my); ctx.lineTo(70,my+45); ctx.stroke();
+    drawArrow(ctx, 70, my-45, 100, my-45);
+    drawArrow(ctx, 70, my+45, 100, my+45);
+    drawBlock(ctx, 100, my-45-17, bw, bh, 'G₁(s)', '#4f8ef7');
+    drawBlock(ctx, 100, my+45-17, bw, bh, 'G₂(s)', '#f7914f');
+    drawArrow(ctx, 180, my-45, 230, my-45);
+    drawArrow(ctx, 180, my+45, 230, my+45);
+    ctx.beginPath(); ctx.moveTo(230,my-45); ctx.lineTo(230,my-10); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(230,my+45); ctx.lineTo(230,my+10); ctx.stroke();
+    drawSummer(ctx, 244, my);
+    drawArrow(ctx, 258, my, 300, my);
+    drawLabel(ctx, W-20, my, 'Y(s)', '#e8eaf0', 12);
+    eqEl.innerHTML = '<span class="hl2">G<sub>eq</sub>(s) = G₁(s) + G₂(s)</span>';
+
+  } else if (type === 'unity-feedback') {
+    const sx=70, bx=120;
+    drawLabel(ctx, 25, my, 'R(s)', '#e8eaf0', 12);
+    drawArrow(ctx, 45, my, sx-14, my);
+    drawSummer(ctx, sx, my);
+    drawLabel(ctx, sx, my-20, '+', '#4fcc7a', 11);
+    drawLabel(ctx, sx+10, my+10, '−', '#f7514f', 12);
+    drawArrow(ctx, sx+14, my, bx, my);
+    drawBlock(ctx, bx, my-17, bw+10, bh, 'G(s)', '#4f8ef7');
+    drawArrow(ctx, bx+bw+10, my, W-30, my);
+    drawLabel(ctx, W-18, my, 'Y(s)', '#e8eaf0', 12);
+    ctx.strokeStyle='#8891a8'; ctx.lineWidth=1.5;
+    const fy=my+55;
+    ctx.beginPath(); ctx.moveTo(W-30,my); ctx.lineTo(W-30,fy); ctx.lineTo(sx,fy); ctx.lineTo(sx,my+14); ctx.stroke();
+    drawLabel(ctx, (W-30+sx)/2, fy+12, 'H(s) = 1  (Unity)', '#8891a8', 10);
+    eqEl.innerHTML = '<span class="hl3">T(s) = G(s) / (1 + G(s))</span>';
+
+  } else if (type === 'general-feedback') {
+    const sx=70;
+    drawLabel(ctx, 25, my, 'R(s)', '#e8eaf0', 12);
+    drawArrow(ctx, 45, my, sx-14, my);
+    drawSummer(ctx, sx, my);
+    drawLabel(ctx, sx, my-20, '+', '#4fcc7a', 11);
+    drawLabel(ctx, sx+10, my+10, '−', '#f7514f', 12);
+    drawArrow(ctx, sx+14, my, 100, my);
+    drawBlock(ctx, 100, my-17, bw, bh, 'G(s)', '#4f8ef7');
+    drawArrow(ctx, 180, my, W-30, my);
+    drawLabel(ctx, W-18, my, 'Y(s)', '#e8eaf0', 12);
+    const fy=my+60;
+    ctx.strokeStyle='#8891a8'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(W-30,my); ctx.lineTo(W-30,fy); ctx.lineTo(sx,fy); ctx.lineTo(sx,my+14); ctx.stroke();
+    drawBlock(ctx, 120, fy-17, bw, bh, 'H(s)', '#f7914f');
+    eqEl.innerHTML = '<span style="color:var(--purple)">T(s) = G(s) / (1 + G(s)·H(s))</span>';
+  }
+}
+
+// ───────────────────────────────────────────────────────
+// INTERACTIVE TAB
+// ───────────────────────────────────────────────────────
+const topoParams = {
+  'series2':         [{id:'g1n',label:'G1 gain',min:1,max:30,val:10},{id:'g2n',label:'G2 gain',min:1,max:30,val:5},{id:'g1p',label:'G1 pole',min:1,max:10,val:2},{id:'g2p',label:'G2 pole',min:1,max:10,val:5}],
+  'series3':         [{id:'g1n',label:'G1 gain',min:1,max:30,val:10},{id:'g2n',label:'G2 gain',min:1,max:20,val:5},{id:'g3n',label:'G3 gain',min:1,max:20,val:2},{id:'g1p',label:'G1 pole',min:1,max:10,val:2},{id:'g2p',label:'G2 pole',min:1,max:10,val:5},{id:'g3p',label:'G3 pole',min:1,max:10,val:3}],
+  'parallel':        [{id:'g1n',label:'G1 gain',min:1,max:20,val:5},{id:'g2n',label:'G2 gain',min:1,max:20,val:3},{id:'g1p',label:'G1 pole',min:1,max:10,val:2},{id:'g2p',label:'G2 pole',min:1,max:10,val:4}],
+  'feedback-unity':  [{id:'g1n',label:'G gain',min:1,max:50,val:10},{id:'g1p',label:'G pole',min:1,max:10,val:2}],
+  'feedback-general':[{id:'g1n',label:'G gain',min:1,max:50,val:10},{id:'h1n',label:'H gain',min:1,max:20,val:2},{id:'g1p',label:'G pole',min:1,max:10,val:2},{id:'h1p',label:'H pole',min:1,max:10,val:1}],
+  'cascade-feedback':[{id:'g1n',label:'G1 gain',min:1,max:30,val:10},{id:'g2n',label:'G2 gain',min:1,max:20,val:5},{id:'h1n',label:'H gain',min:1,max:10,val:1},{id:'g1p',label:'G1 pole',min:1,max:10,val:2},{id:'g2p',label:'G2 pole',min:1,max:10,val:5}],
+};
+
+function getVal(id) { const el=document.getElementById('p_'+id); return el ? +el.value : 1; }
+
+function updateInteractive() {
+  const topo = document.getElementById('topo-select').value;
+  const params = topoParams[topo];
+  const ctrl = document.getElementById('param-controls');
+  ctrl.innerHTML = params.map(p =>
+    `<label>${p.label}: <span class="val-disp" id="disp_${p.id}">${p.val}</span></label>
+     <input type="range" id="p_${p.id}" min="${p.min}" max="${p.max}" value="${p.val}" oninput="document.getElementById('disp_${p.id}').textContent=this.value;computeTF()">`
+  ).join('');
+  computeTF();
+}
+
+function computeTF() {
+  const topo = document.getElementById('topo-select').value;
+  let num, den, label;
+
+  const g1n=getVal('g1n'), g2n=getVal('g2n'), g3n=getVal('g3n');
+  const g1p=getVal('g1p'), g2p=getVal('g2p'), g3p=getVal('g3p');
+  const h1n=getVal('h1n'), h1p=getVal('h1p');
+
+  if (topo==='series2') {
+    // G1*G2 = (g1n*g2n) / ((s+g1p)(s+g2p))
+    num = [g1n*g2n];
+    den = [1, g1p+g2p, g1p*g2p];
+    label = `G<sub>eq</sub>(s) = <span class="hl">${g1n*g2n}</span> / (s² + ${g1p+g2p}s + ${g1p*g2p})`;
+  } else if (topo==='series3') {
+    num = [g1n*g2n*g3n];
+    den = conv3([1,g1p],[1,g2p],[1,g3p]);
+    label = `G<sub>eq</sub>(s) = <span class="hl">${g1n*g2n*g3n}</span> / (s+${g1p})(s+${g2p})(s+${g3p})`;
+  } else if (topo==='parallel') {
+    // G1+G2 = (g1n(s+g2p)+g2n(s+g1p)) / (s+g1p)(s+g2p)
+    num = [g1n+g2n, g1n*g2p+g2n*g1p];
+    den = [1, g1p+g2p, g1p*g2p];
+    label = `G<sub>eq</sub>(s) = <span class="hl2">${g1n+g2n}s + ${g1n*g2p+g2n*g1p}</span> / (s² + ${g1p+g2p}s + ${g1p*g2p})`;
+  } else if (topo==='feedback-unity') {
+    // G/(1+G) = g1n/(s+g1p) / (1 + g1n/(s+g1p)) = g1n/(s+g1p+g1n)
+    num = [g1n];
+    den = [1, g1p+g1n];
+    label = `T(s) = <span class="hl3">${g1n}</span> / (s + ${g1p+g1n})`;
+  } else if (topo==='feedback-general') {
+    // G/(1+GH) with G=g1n/(s+g1p), H=h1n/(s+h1p)
+    // = g1n(s+h1p) / ((s+g1p)(s+h1p)+g1n*h1n)
+    const a=1, b=g1p+h1p, c=g1p*h1p+g1n*h1n;
+    num = [g1n, g1n*h1p];
+    den = [a, b, c];
+    label = `T(s) = <span style="color:var(--purple)">${g1n}(s+${h1p})</span> / (s² + ${b}s + ${c})`;
+  } else if (topo==='cascade-feedback') {
+    // Inner: G2/(1+G2H) = g2n(s+h1p)/((s+g2p)(s+h1p)+g2n*h1n)
+    // Then series with G1, outer unity feedback
+    const den_inner_c = g2p*h1p + g2n*h1n;
+    // Approx simplified for display
+    num = [g1n*g2n];
+    const d1=1, d2=g1p+g2p+h1n*g2n/g2p, d3=g1p*g2p+g1n*g2n;
+    den = [d1, Math.round(d2), Math.round(d3)];
+    label = `T(s) = <span class="hl">${g1n*g2n}</span> / (s² + ${Math.round(d2)}s + ${Math.round(d3)}) <span style="color:var(--muted)">[approx]</span>`;
+  }
+
+  document.getElementById('tf-result').innerHTML = label || '';
+  drawInterDiagram(topo);
+  drawStepResponse(num, den);
+}
+
+function conv3(a,b,c) {
+  function conv(p,q){ let r=new Array(p.length+q.length-1).fill(0); for(let i=0;i<p.length;i++) for(let j=0;j<q.length;j++) r[i+j]+=p[i]*q[j]; return r; }
+  return conv(conv(a,b),c);
+}
+
+function drawInterDiagram(topo) {
+  const {ctx,W,H} = setupCanvas('interCanvas');
+  const my=H/2, bw=70, bh=32;
+
+  if (topo==='series2') {
+    drawLabel(ctx,22,my,'R(s)','#e8eaf0',11);
+    drawArrow(ctx,44,my,70,my);
+    drawBlock(ctx,70,my-16,bw,bh,'G₁(s)','#4f8ef7');
+    drawArrow(ctx,140,my,175,my);
+    drawBlock(ctx,175,my-16,bw,bh,'G₂(s)','#4f8ef7');
+    drawArrow(ctx,245,my,W-20,my);
+    drawLabel(ctx,W-12,my,'Y','#e8eaf0',11);
+  } else if (topo==='series3') {
+    drawLabel(ctx,18,my,'R','#e8eaf0',10);
+    drawArrow(ctx,30,my,50,my);
+    drawBlock(ctx,50,my-15,60,bh,'G₁','#4f8ef7');
+    drawArrow(ctx,110,my,135,my);
+    drawBlock(ctx,135,my-15,60,bh,'G₂','#4f8ef7');
+    drawArrow(ctx,195,my,220,my);
+    drawBlock(ctx,220,my-15,60,bh,'G₃','#4f8ef7');
+    drawArrow(ctx,280,my,W-15,my);
+    drawLabel(ctx,W-8,my,'Y','#e8eaf0',10);
+  } else if (topo==='parallel') {
+    drawLabel(ctx,18,my,'R','#e8eaf0',11);
+    drawArrow(ctx,35,my,60,my);
+    ctx.strokeStyle='#8891a8'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(60,my); ctx.lineTo(60,my-40); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(60,my); ctx.lineTo(60,my+40); ctx.stroke();
+    drawArrow(ctx,60,my-40,90,my-40);
+    drawArrow(ctx,60,my+40,90,my+40);
+    drawBlock(ctx,90,my-40-15,65,bh,'G₁(s)','#4f8ef7');
+    drawBlock(ctx,90,my+40-15,65,bh,'G₂(s)','#f7914f');
+    drawArrow(ctx,155,my-40,195,my-40);
+    drawArrow(ctx,155,my+40,195,my+40);
+    ctx.beginPath(); ctx.moveTo(195,my-40); ctx.lineTo(195,my-14); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(195,my+40); ctx.lineTo(195,my+14); ctx.stroke();
+    drawSummer(ctx,209,my);
+    drawArrow(ctx,223,my,W-20,my);
+    drawLabel(ctx,W-12,my,'Y','#e8eaf0',11);
+  } else if (topo==='feedback-unity') {
+    drawLabel(ctx,18,my,'R','#e8eaf0',11);
+    drawArrow(ctx,32,my,56,my);
+    drawSummer(ctx,70,my);
+    drawArrow(ctx,84,my,110,my);
+    drawBlock(ctx,110,my-16,75,bh,'G(s)','#4f8ef7');
+    drawArrow(ctx,185,my,W-20,my);
+    drawLabel(ctx,W-12,my,'Y','#e8eaf0',11);
+    ctx.strokeStyle='#8891a8'; ctx.lineWidth=1.3;
+    ctx.beginPath(); ctx.moveTo(W-20,my); ctx.lineTo(W-20,my+55); ctx.lineTo(70,my+55); ctx.lineTo(70,my+14); ctx.stroke();
+    drawLabel(ctx,(W-20+70)/2,my+66,'H=1','#4fcc7a',10);
+  } else if (topo==='feedback-general' || topo==='cascade-feedback') {
+    drawLabel(ctx,18,my,'R','#e8eaf0',11);
+    drawArrow(ctx,32,my,56,my);
+    drawSummer(ctx,70,my);
+    drawArrow(ctx,84,my,108,my);
+    drawBlock(ctx,108,my-16,65,bh,'G(s)','#4f8ef7');
+    drawArrow(ctx,173,my,W-20,my);
+    drawLabel(ctx,W-12,my,'Y','#e8eaf0',11);
+    ctx.strokeStyle='#8891a8'; ctx.lineWidth=1.3;
+    const fy=my+58;
+    ctx.beginPath(); ctx.moveTo(W-20,my); ctx.lineTo(W-20,fy); ctx.lineTo(70,fy); ctx.lineTo(70,my+14); ctx.stroke();
+    drawBlock(ctx,115,fy-15,60,30,'H(s)','#f7914f');
+  }
+}
+
+function drawStepResponse(num, den) {
+  const {ctx,W,H} = setupCanvas('stepCanvas');
+  const pad={l:40,r:15,t:18,b:28};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+
+  // Simulate step response
+  const N=400, dt=0.05;
+  const y=simulateStep(num, den, N, dt);
+  const tMax=(N-1)*dt;
+  const yMax=Math.max(1.3, ...y.map(Math.abs))*1.1;
+  const yMin=Math.min(0,...y)*1.05;
+
+  // Grid
+  ctx.strokeStyle='#1f2335'; ctx.lineWidth=0.8;
+  for(let i=0;i<=5;i++){
+    const x=pad.l+(i/5)*pw; ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,pad.t+ph); ctx.stroke();
+    const yy=pad.t+(i/5)*ph; ctx.beginPath(); ctx.moveTo(pad.l,yy); ctx.lineTo(pad.l+pw,yy); ctx.stroke();
+  }
+
+  // Steady state line
+  const ss=num.reduce((a,b)=>a+b,0)/den.reduce((a,b)=>a+b,0);
+  if(isFinite(ss)){
+    const ss_y=pad.t+ph*(1-(ss-yMin)/(yMax-yMin));
+    ctx.strokeStyle='#2a4080'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(pad.l,ss_y); ctx.lineTo(pad.l+pw,ss_y); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Axes
+  const zy=pad.t+ph*(1-(0-yMin)/(yMax-yMin));
+  ctx.strokeStyle='#8891a8'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pad.l,zy); ctx.lineTo(pad.l+pw,zy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad.l,pad.t); ctx.lineTo(pad.l,pad.t+ph); ctx.stroke();
+
+  // Labels
+  ctx.fillStyle='#8891a8'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+  ctx.fillText(`${tMax.toFixed(0)}s`, pad.l+pw, pad.t+ph+18);
+  ctx.textAlign='right'; ctx.fillText('0', pad.l-4, zy+4);
+
+  // Curve
+  ctx.strokeStyle='#4f8ef7'; ctx.lineWidth=2;
+  ctx.beginPath();
+  y.forEach((v,i)=>{
+    const px=pad.l+(i/(N-1))*pw;
+    const py=pad.t+ph*(1-(v-yMin)/(yMax-yMin));
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  });
+  ctx.stroke();
+
+  // Info
+  const ssVal = isFinite(ss) ? ss.toFixed(3) : 'N/A';
+  const peakY = Math.max(...y);
+  document.getElementById('step-info').innerHTML=
+    `<div class="chip">DC Gain: <span>${ssVal}</span></div>
+     <div class="chip">Peak: <span>${peakY.toFixed(3)}</span></div>`;
+}
+
+function simulateStep(num, den, N, dt) {
+  // Normalize
+  const a0=den[0];
+  const a=den.map(v=>v/a0), b=num.map(v=>v/a0);
+  const order=a.length-1;
+  const y=new Array(N).fill(0), x=new Array(N).fill(0);
+
+  // Extend b to match order
+  const bb=new Array(order+1).fill(0);
+  for(let i=0;i<b.length;i++) bb[order-(b.length-1)+i]=b[i];
+
+  // Euler integration (simple but visible)
+  const state=new Array(order).fill(0);
+  for(let k=0;k<N;k++){
+    const u=1; // step input
+    let yOut=bb[0]*u;
+    for(let i=0;i<order;i++) yOut+=state[i]*(bb[i+1]||0);
+    y[k]=yOut;
+    // State update
+    const newState=[...state];
+    for(let i=order-1;i>0;i--) newState[i]=state[i-1];
+    let inp=u;
+    for(let i=0;i<order;i++) inp-=a[i+1]*state[i];
+    newState[0]=inp*dt + state[0];
+    for(let i=1;i<order;i++) newState[i]+=state[i-1]*dt;
+    state.splice(0,order,...newState);
+  }
+
+  // Better: use impulse + cumsum or analytical approach
+  // Use analytical 2nd order if possible
+  if(den.length===3 && num.length===1){
+    const K=num[0]/den[0], wn2=den[2]/den[0], two_z_wn=den[1]/den[0];
+    const wn=Math.sqrt(Math.abs(wn2)), z=two_z_wn/(2*wn);
+    const ss=K/wn2;
+    return Array.from({length:N},(_,i)=>{
+      const t=i*dt;
+      if(z<0.999){
+        const wd=wn*Math.sqrt(1-z*z);
+        return ss*(1-Math.exp(-z*wn*t)*(Math.cos(wd*t)+z/Math.sqrt(1-z*z)*Math.sin(wd*t)));
+      } else if(z>1.001){
+        const r1=-wn*(z-Math.sqrt(z*z-1)), r2=-wn*(z+Math.sqrt(z*z-1));
+        return ss*(1+(r1/(r2-r1))*Math.exp(r2*t)-(r2/(r2-r1))*Math.exp(r1*t));
+      } else {
+        return ss*(1-Math.exp(-wn*t)*(1+wn*t));
+      }
+    });
+  }
+  if(den.length===2 && num.length===1){
+    const K=num[0]/den[0], p=den[1]/den[0];
+    return Array.from({length:N},(_,i)=>{ const t=i*dt; return (K/p)*(1-Math.exp(-p*t)); });
+  }
+  return y;
+}
+
+// ───────────────────────────────────────────────────────
+// FEEDBACK TAB
+// ───────────────────────────────────────────────────────
+function updateFeedback() {
+  const K  = +document.getElementById('K-slider').value;
+  const H  = +document.getElementById('H-slider').value / 10;
+  const zp = +document.getElementById('Z-slider').value / 10;
+  document.getElementById('K-val').textContent = K;
+  document.getElementById('H-val').textContent = H.toFixed(1);
+  document.getElementById('Z-val').textContent = zp.toFixed(1);
+
+  // Plant: G(s) = K*wn2 / (s^2 + 2z*wn*s + wn2), wn=5
+  const wn=5, wn2=wn*wn;
+  const G_num=[K*wn2], G_den=[1,2*zp*wn,wn2];
+
+  // Closed-loop: T = G / (1 + G*H)
+  // = K*wn2 / (s^2 + 2z*wn*s + wn2 + K*H*wn2)
+  const CL_num=[K*wn2], CL_den=[1, 2*zp*wn, wn2*(1+K*H)];
+  const CL_wn=Math.sqrt(CL_den[2]), CL_z=CL_den[1]/(2*CL_wn);
+  const OL_z=zp;
+
+  const {ctx,W,H:Hc} = setupCanvas('fbCanvas');
+  const pad={l:42,r:14,t:18,b:30}, pw=W-pad.l-pad.r, ph=Hc-pad.t-pad.b;
+  const N=500, dt=0.02;
+
+  function calc(num,den){
+    const wn2=den[2], two_z_wn=den[1], K2=num[0];
+    const wn=Math.sqrt(Math.abs(wn2)), z=two_z_wn/(2*wn), ss=K2/wn2;
+    return Array.from({length:N},(_,i)=>{
+      const t=i*dt;
+      if(z<0.999 && z>0){
+        const wd=wn*Math.sqrt(1-z*z);
+        return ss*(1-Math.exp(-z*wn*t)*(Math.cos(wd*t)+z/Math.sqrt(1-z*z)*Math.sin(wd*t)));
+      } else if(z>1.001){
+        const r1=-wn*(z-Math.sqrt(z*z-1)),r2=-wn*(z+Math.sqrt(z*z-1));
+        return ss*(1+(r1/(r2-r1))*Math.exp(r2*t)-(r2/(r2-r1))*Math.exp(r1*t));
+      } return ss*(1-Math.exp(-wn*t)*(1+wn*t));
+    });
+  }
+
+  const yOL=calc(G_num,G_den), yCL=calc(CL_num,CL_den);
+  const yMax=Math.max(...yOL,...yCL)*1.15, yMin=Math.min(0,...yOL,...yCL)*1.1;
+
+  // Grid
+  ctx.strokeStyle='#1f2335'; ctx.lineWidth=0.8;
+  for(let i=0;i<=5;i++){
+    const x=pad.l+(i/5)*pw; ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,pad.t+ph); ctx.stroke();
+    const y=pad.t+(i/5)*ph; ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+pw,y); ctx.stroke();
+  }
+  const zy=pad.t+ph*(1-(0-yMin)/(yMax-yMin));
+  ctx.strokeStyle='#8891a8'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pad.l,zy); ctx.lineTo(pad.l+pw,zy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad.l,pad.t); ctx.lineTo(pad.l,pad.t+ph); ctx.stroke();
+
+  // Open loop
+  ctx.strokeStyle='#f7914f'; ctx.lineWidth=1.8; ctx.setLineDash([5,4]);
+  ctx.beginPath();
+  yOL.forEach((v,i)=>{ const px=pad.l+(i/(N-1))*pw, py=pad.t+ph*(1-(v-yMin)/(yMax-yMin)); i===0?ctx.moveTo(px,py):ctx.lineTo(px,py); });
+  ctx.stroke(); ctx.setLineDash([]);
+
+  // Closed loop
+  ctx.strokeStyle='#4f8ef7'; ctx.lineWidth=2;
+  ctx.beginPath();
+  yCL.forEach((v,i)=>{ const px=pad.l+(i/(N-1))*pw, py=pad.t+ph*(1-(v-yMin)/(yMax-yMin)); i===0?ctx.moveTo(px,py):ctx.lineTo(px,py); });
+  ctx.stroke();
+
+  // Legend
+  ctx.font='11px sans-serif'; ctx.textAlign='left';
+  ctx.fillStyle='#f7914f'; ctx.fillText('── Open Loop',pad.l+6,pad.t+14);
+  ctx.fillStyle='#4f8ef7'; ctx.fillText('── Closed Loop',pad.l+6,pad.t+28);
+  ctx.fillStyle='#8891a8'; ctx.fillText(`${(N*dt).toFixed(0)}s`,pad.l+pw-18,pad.t+ph+20);
+
+  document.getElementById('fb-tf').innerHTML =
+    `<span class="cmt">// Open-loop G(s):</span><br>
+     G(s) = <span class="hl">${K}·${wn2}</span> / (s² + ${(2*zp*wn).toFixed(1)}s + ${wn2})<br><br>
+     <span class="cmt">// Closed-loop T(s) = G/(1+GH):</span><br>
+     T(s) = <span class="hl3">${K*wn2}</span> / (s² + ${(2*zp*wn).toFixed(1)}s + ${(wn2*(1+K*H)).toFixed(1)})<br><br>
+     ωₙ(CL) = <span class="hl2">${CL_wn.toFixed(2)}</span> rad/s &nbsp;|&nbsp; ζ(CL) = <span class="hl2">${CL_z.toFixed(3)}</span>`;
+
+  const type=CL_z<0.999?'🔵 Underdamped':CL_z>1.001?'🟠 Overdamped':'🟢 Critical';
+  document.getElementById('fb-chips').innerHTML=
+    `<div class="chip">ωₙ(CL)=<span>${CL_wn.toFixed(2)}</span></div>
+     <div class="chip">ζ(CL)=<span>${CL_z.toFixed(3)}</span></div>
+     <div class="chip">Type: <span>${type}</span></div>`;
+}
+
+// ── Init ──
+window.addEventListener('load',()=>{
+  setTimeout(()=>{ drawDiagram(); updateInteractive(); updateFeedback(); }, 100);
+});
+window.addEventListener('resize',()=>{ drawDiagram(); });
+</script>
+</body>
+</html>
